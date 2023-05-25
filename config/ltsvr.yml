@@ -1,0 +1,46 @@
+spring:
+  main:
+    allow-circular-references: true
+  banner:
+    location: "banner.txt"
+  datasource:
+    url: jdbc:sqlite:/path/to/sqlite.db
+    username:
+    password:
+    driver-class-name: org.sqlite.JDBC
+
+server-address:
+  relays:
+    - "relay:111.111.111.111:1234:user1:passwd1"
+  reflexes:
+    - "stun:stun.l.google.com:19302"
+    - "stun:stun2.l.google.com:19302"
+    - "stun:stun3.l.google.com:19302"
+
+mybatis:
+  mapper-locations: classpath:mybatis/mapper/*Mapper.xml
+  type-aliases-package: cn.lanthing.svr.entity
+
+logging:
+  level:
+    cn.lanthing.svr.dao: debug
+
+ssl-security:
+  certs-folder: "./certs"
+  cert-chain-file: "server.crt"
+  private-key-file: "server.key"
+
+controlled-socket-svr:
+  port: 4567
+  ssl-port: 5678
+  ip: "0.0.0.0"
+
+controlling-socket-svr:
+  port: 9876
+  ssl-port: 8765
+  ip: "0.0.0.0"
+
+
+signaling:
+  ip: "127.0.0.1"
+  port: 8842

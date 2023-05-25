@@ -1,0 +1,32 @@
+package cn.lanthing.svr.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest
+class DeviceIDServiceTest {
+
+    @Autowired
+    private DeviceIDService deviceIDService;
+
+    @org.junit.jupiter.api.Test
+    void allocateDeviceID() {
+        Long id = deviceIDService.allocateDeviceID();
+        assertTrue(id != null && id != 0);
+    }
+
+    @org.junit.jupiter.api.Test
+    void isValidDeviceID() {
+        boolean ret = deviceIDService.isValidDeviceID(1234567);
+        assertTrue(ret);
+        ret = deviceIDService.isValidDeviceID(7654321);
+        assertFalse(ret);
+        ret = deviceIDService.isValidDeviceID(1234569);
+        assertFalse(ret);
+        Long deviceID = deviceIDService.allocateDeviceID();
+        ret = deviceIDService.isValidDeviceID(deviceID);
+        assertTrue(ret);
+    }
+}

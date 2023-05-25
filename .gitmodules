@@ -1,0 +1,3 @@
+[submodule "ltproto"]
+	path = ltproto
+	url = https://github.com/pjlt/ltproto.git
