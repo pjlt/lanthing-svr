@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.5</version>
+        <version>3.1.4</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -24,8 +24,20 @@
     </modules>
 
     <properties>
+        <!--
+        有几个问题：
+            1. 不清楚自定义的变量会不会和"内置"变量名字重了
+            2. spring-boot的版本不能统一在这里定义
+            3. 有些包隐含依赖了另一些包，这些包不应该再声明依赖的版本，但是不清楚有哪些
+        -->
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <mybatis-springboot.version>3.0.2</mybatis-springboot.version>
+        <sqlite-jdbc.version>3.43.0.0</sqlite-jdbc.version>
+        <protobuf.version>3.22.2</protobuf.version>
+        <reflections.version>0.10.2</reflections.version>
+        <xolstice-maven-protobuf.version>0.6.1</xolstice-maven-protobuf.version>
+        <motd-os-maven.version>1.7.0</motd-os-maven.version>
     </properties>
 
     <dependencies>
@@ -44,7 +56,7 @@
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
-            <version>0.10.2</version>
+            <version>${reflections.version}</version>
         </dependency>
 
         <dependency>
