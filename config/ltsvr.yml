@@ -21,9 +21,12 @@ mybatis:
   mapper-locations: classpath:mybatis/mapper/*Mapper.xml
   type-aliases-package: cn.lanthing.svr.entity
 
-logging:
-  level:
-    cn.lanthing.svr.dao: debug
+log:
+  path: log
+  prefix: ltsvr
+  format: "[%date{yyyy-MM-dd HH:mm:ss.SSS}][%thread][%level][%logger{0}] %msg%n"
+  reserve-days: 30
+  level: INFO
 
 ssl-security:
   certs-folder: "./certs"

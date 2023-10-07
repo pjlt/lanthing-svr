@@ -87,6 +87,8 @@ nb-configuration.xml
 ## Lanthing
 ##############################
 logs/
+log/
 certs/
 application-dev.yml
 *.sqlite
+*.sqlite.ok
