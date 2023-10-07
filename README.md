@@ -1,4 +1,6 @@
 # lanthing-svr
+[![Java CI with Maven](https://github.com/pjlt/lanthing-svr/actions/workflows/maven.yml/badge.svg?branch=master)](https://github.com/pjlt/lanthing-svr/actions/workflows/maven.yml)
+
 编译出输出两个文件：`ltsvr.jar`和`ltsig.jar`，默认不把配置文件打包进去，需要启动时指定参数`--spring.config.location=/path/to/spring.config.yml`。
 配置文件的模板在`./config`。
 
