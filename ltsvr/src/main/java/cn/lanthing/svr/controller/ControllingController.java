@@ -155,7 +155,9 @@ public class ControllingController {
                 .setStreamingParams(msg.getStreamingParams())
                 .setAccessToken(msg.getAccessToken())
                 .setP2PUsername(orderInfo.p2pUsername)
-                .setP2PPassword(orderInfo.p2pPassword);
+                .setP2PPassword(orderInfo.p2pPassword)
+                .setClientDeviceId(deviceID)
+                .setCookie(msg.getCookie());
         if (!CollectionUtils.isEmpty(orderInfo.reflexServers)) {
             openConn.addAllReflexServers(orderInfo.reflexServers);
         }
