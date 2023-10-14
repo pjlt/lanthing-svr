@@ -32,6 +32,7 @@
 package cn.lanthing.sig.handler;
 
 import cn.lanthing.codec.*;
+import cn.lanthing.ltproto.ErrorCodeOuterClass;
 import cn.lanthing.ltproto.signaling.JoinRoomAckProto;
 import cn.lanthing.ltproto.signaling.JoinRoomProto;
 import cn.lanthing.sig.service.Session;
@@ -49,10 +50,10 @@ public class HandlerJoinRoom implements MessageHandler, MessageCreator {
         JoinRoomAckProto.JoinRoomAck.Builder ack = JoinRoomAckProto.JoinRoomAck.newBuilder();
         if (session.joinRoom(msg.getRoomId(), msg.getSessionId())) {
             log.info("Session '{}' join room '{}' success", msg.getSessionId(), msg.getRoomId());
-            ack.setErrCode(JoinRoomAckProto.JoinRoomAck.ErrCode.Success);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
         } else {
             log.warn("Session '{}' join room '{}' failed", msg.getSessionId(), msg.getRoomId());
-            ack.setErrCode(JoinRoomAckProto.JoinRoomAck.ErrCode.Failed);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.JoinRoomFailed);
         }
         LtMessage response = new LtMessage(MessageTypes.kJoinRoomAck, ack.build());
         session.send(response);
