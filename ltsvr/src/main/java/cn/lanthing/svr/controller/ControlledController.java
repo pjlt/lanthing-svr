@@ -32,6 +32,7 @@
 package cn.lanthing.svr.controller;
 
 import cn.lanthing.codec.LtMessage;
+import cn.lanthing.ltproto.ErrorCodeOuterClass;
 import cn.lanthing.ltproto.LtProto;
 import cn.lanthing.ltproto.server.*;
 import cn.lanthing.ltsocket.ConnectionEvent;
@@ -90,16 +91,16 @@ public class ControlledController {
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
         if (!deviceIDService.isValidDeviceID(msg.getDeviceId())) {
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
-            ack.setErrCode(LoginDeviceAckProto.LoginDeviceAck.ErrCode.Failed);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
 
         String sessionID = controlledDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl(), msg.getSessionId());
         if (Strings.isNullOrEmpty(sessionID)) {
-            ack.setErrCode(LoginDeviceAckProto.LoginDeviceAck.ErrCode.Failed);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus);
             log.info("LoginDevice failed({}:{})", connectionID, msg.getDeviceId());
         } else {
-            ack.setErrCode(LoginDeviceAckProto.LoginDeviceAck.ErrCode.Success);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
             ack.setSessionId(sessionID);
             log.info("LoginDevice success({}:{}:{})", connectionID, msg.getDeviceId(), sessionID);
         }
@@ -124,8 +125,8 @@ public class ControlledController {
             return null;
         }
         var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
-        if (msg.getErrCode() != OpenConnectionAckProto.OpenConnectionAck.ErrCode.Success) {
-            ack.setErrCode(RequestConnectionAckProto.RequestConnectionAck.ErrCode.Failed)
+        if (msg.getErrCode() != ErrorCodeOuterClass.ErrorCode.Success) {
+            ack.setErrCode(msg.getErrCode())
                     .setRequestId(orderInfo.clientRequestID);
             boolean success = orderService.closeOrderFromControlled(orderInfo.roomID, orderInfo.toDeviceID);
             if (success) {
@@ -134,7 +135,7 @@ public class ControlledController {
                 log.warn("Order with room id({}) close failed", orderInfo.roomID);
             }
         } else {
-            ack.setErrCode(RequestConnectionAckProto.RequestConnectionAck.ErrCode.Success)
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
                     .setRequestId(orderInfo.clientRequestID)
                     .setDeviceId(orderInfo.toDeviceID)
                     .setSignalingAddr(orderInfo.signalingAddress)

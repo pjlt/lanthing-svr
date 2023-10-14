@@ -32,6 +32,7 @@
 package cn.lanthing.sig.handler;
 
 import cn.lanthing.codec.*;
+import cn.lanthing.ltproto.ErrorCodeOuterClass;
 import cn.lanthing.ltproto.signaling.SignalingMessageAckProto;
 import cn.lanthing.ltproto.signaling.SignalingMessageProto;
 import cn.lanthing.sig.service.Session;
@@ -48,9 +49,9 @@ public class HandlerSignalingMessage implements MessageHandler, MessageCreator {
 
         SignalingMessageAckProto.SignalingMessageAck.Builder ack = SignalingMessageAckProto.SignalingMessageAck.newBuilder();
         if (session.relayMessage(message)) {
-            ack.setErrCode(SignalingMessageAckProto.SignalingMessageAck.ErrCode.Success);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
         } else {
-            ack.setErrCode(SignalingMessageAckProto.SignalingMessageAck.ErrCode.NotOnline);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.SignalingPeerNotOnline);
         }
         LtMessage response = new LtMessage(MessageTypes.kSignalingMessageAck, ack.build());
         session.send(response);

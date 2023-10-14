@@ -32,6 +32,7 @@
 package cn.lanthing.svr.controller;
 
 import cn.lanthing.codec.LtMessage;
+import cn.lanthing.ltproto.ErrorCodeOuterClass;
 import cn.lanthing.ltproto.LtProto;
 import cn.lanthing.ltproto.server.*;
 import cn.lanthing.ltsocket.ConnectionEvent;
@@ -88,9 +89,9 @@ public class ControllingController {
         Long newID = deviceIDService.allocateDeviceID();
         var ack = AllocateDeviceIDAckProto.AllocateDeviceIDAck.newBuilder();
         if (newID == null) {
-            ack.setErrCode(AllocateDeviceIDAckProto.AllocateDeviceIDAck.ErrCode.Failed);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.AllocateDeviceIDNoAvailableID);
         } else {
-            ack.setErrCode(AllocateDeviceIDAckProto.AllocateDeviceIDAck.ErrCode.Success);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
             ack.setDeviceId(newID);
         }
         return new LtMessage(LtProto.AllocateDeviceIDAck.ID, ack.build());
@@ -102,16 +103,16 @@ public class ControllingController {
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
         if (!deviceIDService.isValidDeviceID(msg.getDeviceId())) {
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
-            ack.setErrCode(LoginDeviceAckProto.LoginDeviceAck.ErrCode.Failed);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
 
         String sessionID = controllingDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getSessionId());
         if (Strings.isNullOrEmpty(sessionID)) {
-            ack.setErrCode(LoginDeviceAckProto.LoginDeviceAck.ErrCode.Failed);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus);
             log.info("LoginDevice failed({}:{})", connectionID, msg.getDeviceId());
         } else {
-            ack.setErrCode(LoginDeviceAckProto.LoginDeviceAck.ErrCode.Success);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
             ack.setSessionId(sessionID);
             log.info("LoginDevice success({}:{}:{})", connectionID, msg.getDeviceId(), sessionID);
         }
@@ -125,7 +126,7 @@ public class ControllingController {
         if (peerConnID == null) {
             log.warn("Controlled device({}) not online", peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
-            ack.setErrCode(RequestConnectionAckProto.RequestConnectionAck.ErrCode.Failed)
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionInvalidStatus)
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
@@ -134,7 +135,7 @@ public class ControllingController {
             // 可能是这个message处理到一半，在另一个线程处理了断链
             log.error("Get device id by connection id failed!");
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
-            ack.setErrCode(RequestConnectionAckProto.RequestConnectionAck.ErrCode.Failed)
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionInvalidStatus)
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
@@ -142,7 +143,7 @@ public class ControllingController {
         if (orderInfo == null) {
             log.warn("RequestConnection({}->{}) failed", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
-            ack.setErrCode(RequestConnectionAckProto.RequestConnectionAck.ErrCode.Failed)
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionCreateOrderFailed)
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
