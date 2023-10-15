@@ -125,6 +125,7 @@ public class ControlledController {
             return null;
         }
         var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
+        ack.setDeviceId(deviceID);
         if (msg.getErrCode() != ErrorCodeOuterClass.ErrorCode.Success) {
             ack.setErrCode(msg.getErrCode())
                     .setRequestId(orderInfo.clientRequestID);
