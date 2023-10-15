@@ -126,6 +126,7 @@ public class ControllingController {
         if (peerConnID == null) {
             log.warn("Controlled device({}) not online", peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
+            ack.setDeviceId(peerDeviceID);
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionInvalidStatus)
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
@@ -143,6 +144,7 @@ public class ControllingController {
         if (orderInfo == null) {
             log.warn("RequestConnection({}->{}) failed", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
+            ack.setDeviceId(peerDeviceID);
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionCreateOrderFailed)
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
