@@ -35,11 +35,15 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 
 @Slf4j
+@Getter
+@Setter
 public class SocketServer {
 
     private SocketConfig config;
@@ -69,13 +73,18 @@ public class SocketServer {
                 .channel(NioServerSocketChannel.class)
                 .localAddress(new InetSocketAddress(config.getIP(), config.getPort()))
                 .childHandler(nonSslChannelInitializer);
-//        sslBoostrap.group(bossGroup, childGroup)
-//                .channel(NioServerSocketChannel.class)
-//                .localAddress((new InetSocketAddress(config.getIP(), config.getSslPort())))
-//                .childHandler(sslChannelInitializer);
+        if (sslChannelInitializer != null) {
+            sslBoostrap.group(bossGroup, childGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .localAddress((new InetSocketAddress(config.getIP(), config.getSslPort())))
+                    .childHandler(sslChannelInitializer);
+        }
+
 
         nonSslBoostrap.bind().sync();
-//        sslBoostrap.bind().sync();
+        if (sslChannelInitializer != null) {
+            sslBoostrap.bind().sync();
+        }
 
         log.info("Socket server initialized");
     }
@@ -85,27 +94,4 @@ public class SocketServer {
         childGroup.shutdownGracefully().sync();
     }
 
-    public SocketConfig getConfig() {
-        return config;
-    }
-
-    public void setConfig(SocketConfig config) {
-        this.config = config;
-    }
-
-    public NonSslChannelInitializer getNonSslChannelInitializer() {
-        return nonSslChannelInitializer;
-    }
-
-    public void setNonSslChannelInitializer(NonSslChannelInitializer nonSslChannelInitializer) {
-        this.nonSslChannelInitializer = nonSslChannelInitializer;
-    }
-
-    public SslChannelInitializer getSslChannelInitializer() {
-        return sslChannelInitializer;
-    }
-
-    public void setSslChannelInitializer(SslChannelInitializer sslChannelInitializer) {
-        this.sslChannelInitializer = sslChannelInitializer;
-    }
 }

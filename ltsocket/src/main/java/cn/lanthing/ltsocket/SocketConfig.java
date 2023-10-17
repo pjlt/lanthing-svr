@@ -31,37 +31,25 @@
 
 package cn.lanthing.ltsocket;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public final class SocketConfig {
 
     private String IP;
 
     private int port;
 
+    private boolean enableSsl;
+
     private int sslPort;
 
+    private String certsFolder;
 
-    public String getIP() {
-        return IP;
-    }
+    private String certChainFile;
 
-    public void setIP(String IP) {
-        this.IP = IP;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public int getSslPort() {
-        return sslPort;
-    }
-
-    public void setSslPort(int sslPort) {
-        this.sslPort = sslPort;
-    }
+    private String privateKeyFile;
 
 }

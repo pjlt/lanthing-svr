@@ -29,19 +29,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.config;
+package cn.lanthing.sig.service;
 
-import cn.lanthing.ltsocket.SecurityConfig;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import cn.lanthing.codec.LtMessage;
+import cn.lanthing.sig.entity.Session;
 
-@Configuration
-public class SocketSecurityConfig {
+public interface RoomService {
+    boolean joinRoom(long connectionID, String roomID, String sessionID);
 
-    @Bean
-    @ConfigurationProperties("ssl-security")
-    public SecurityConfig securityConfig() {
-        return new SecurityConfig();
-    }
+    void leaveRoom(long connectionID);
+
+    Session getPeer(long connectionID);
 }

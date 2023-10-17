@@ -31,38 +31,33 @@
 
 package cn.lanthing.sig.sockets;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+import cn.lanthing.ltsocket.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@Component
-@ConfigurationProperties("socket-svr")
-public class SocketConfig {
-    private String IP;
-    private int port;
+@Configuration
+@Slf4j
+public class ChannelInitializer {
 
-    private int sslPort;
+    @Autowired
+    private MessageDispatcher messageDispatcher;
 
-    public String getIP() {
-        return IP;
+    @Autowired
+    private SocketConfig socketConfig;
+
+    @Bean
+    public NonSslChannelInitializer nonSslChannelInitializer() throws Exception {
+        return new NonSslChannelInitializer(messageDispatcher);
     }
 
-    public void setIP(String IP) {
-        this.IP = IP;
+    @Bean
+    public SslChannelInitializer sslChannelInitializer() throws Exception {
+        if (socketConfig.isEnableSsl()) {
+            return new SslChannelInitializer(socketConfig, messageDispatcher);
+        }
+        return null;
     }
 
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public int getSslPort() {
-        return sslPort;
-    }
-
-    public void setSslPort(int sslPort) {
-        this.sslPort = sslPort;
-    }
 }

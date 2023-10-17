@@ -1,15 +1,17 @@
 spring:
+  main:
+    allow-circular-references: true
   banner:
     location: "banner.txt"
 
 socket-svr:
   port: 8842
-  ssl-port: 8843
   ip: "0.0.0.0"
-  security:
-    certs-folder: "./certs"
-    cert-chain-file: "server.crt"
-    private-key-file: "server.key"
+  enable-ssl: false
+  ssl-port: 8843
+  certs-folder: "./certs"
+  cert-chain-file: "server.crt"
+  private-key-file: "server.key"
 
 log:
   path: log
