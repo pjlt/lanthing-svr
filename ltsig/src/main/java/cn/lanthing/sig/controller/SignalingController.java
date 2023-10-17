@@ -68,6 +68,7 @@ public class SignalingController {
     @ConnectionEvent(type = ConnectionEventType.Closed)
     public void onConnectionClosed(long connectionID) {
         roomService.leaveRoom(connectionID);
+        log.info("Connection {} leave", connectionID);
     }
 
     @ConnectionEvent(type = ConnectionEventType.UnexpectedlyClosed)
