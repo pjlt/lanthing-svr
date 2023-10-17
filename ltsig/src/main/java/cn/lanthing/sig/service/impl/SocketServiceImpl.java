@@ -29,11 +29,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.sig.handler;
+package cn.lanthing.sig.service.impl;
 
 import cn.lanthing.codec.LtMessage;
-import cn.lanthing.sig.service.Session;
+import cn.lanthing.ltsocket.MessageDispatcher;
+import cn.lanthing.sig.service.SocketService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-public interface MessageHandler {
-    void handle(Session session, LtMessage message) throws Exception;
+@Service
+public class SocketServiceImpl implements SocketService {
+    @Autowired
+    private MessageDispatcher messageDispatcher;
+
+    @Override
+    public void send(long connectionID, LtMessage ltMessage) {
+        messageDispatcher.send(connectionID, ltMessage);
+    }
 }

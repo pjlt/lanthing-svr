@@ -29,52 +29,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.sockets;
+package cn.lanthing.sig.service;
 
-import cn.lanthing.ltsocket.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import cn.lanthing.codec.LtMessage;
 
-@Configuration
-public class ChannelInitializer {
-
-    @Autowired
-    private MessageDispatcher controllingDispatcher;
-
-    @Autowired
-    private MessageDispatcher controlledDispatcher;
-
-    @Autowired
-    private SocketConfig controlledSocketConfig;
-
-    @Autowired
-    private SocketConfig controllingSocketConfig;
-
-    @Bean
-    public NonSslChannelInitializer controllingNonSslChannelInitializer() throws Exception {
-        return new NonSslChannelInitializer(controllingDispatcher);
-    }
-
-    @Bean
-    public SslChannelInitializer controllingSslChannelInitializer() throws Exception {
-        if (controllingSocketConfig.isEnableSsl()) {
-            return new SslChannelInitializer(controllingSocketConfig, controllingDispatcher);
-        }
-        return null;
-    }
-
-    @Bean
-    public NonSslChannelInitializer controlledNonSslChannelInitializer() throws Exception {
-        return new NonSslChannelInitializer(controlledDispatcher);
-    }
-
-    @Bean
-    public SslChannelInitializer controlledSslChannelInitializer() throws Exception {
-        if (controlledSocketConfig.isEnableSsl()) {
-            return new SslChannelInitializer(controlledSocketConfig, controlledDispatcher);
-        }
-        return null;
-    }
-
+public interface SocketService {
+    void send(long connectionID, LtMessage ltMessage);
 }

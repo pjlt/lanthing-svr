@@ -51,14 +51,14 @@ public class Server {
     @Autowired
     private NonSslChannelInitializer controllingNonSslChannelInitializer;
 
-//    @Autowired
-//    private SslChannelInitializer controllingSslChannelInitializer;
+    @Autowired(required = false)
+    private SslChannelInitializer controllingSslChannelInitializer;
 
     @Autowired
     private NonSslChannelInitializer controlledNonSslChannelInitializer;
 
-//    @Autowired
-//    private SslChannelInitializer controlledSslChannelInitializer;
+    @Autowired(required = false)
+    private SslChannelInitializer controlledSslChannelInitializer;
 
     private SocketServer controlledSocketServer;
 
@@ -66,8 +66,8 @@ public class Server {
 
     @PostConstruct
     public void init() throws Exception {
-        controlledSocketServer = new SocketServer(controlledSocketConfig, controlledNonSslChannelInitializer, null); //controlledSslChannelInitializer);
-        controllingSocketServer = new SocketServer(controllingSocketConfig, controllingNonSslChannelInitializer, null); //controllingSslChannelInitializer);
+        controlledSocketServer = new SocketServer(controlledSocketConfig, controlledNonSslChannelInitializer, controlledSslChannelInitializer);
+        controllingSocketServer = new SocketServer(controllingSocketConfig, controllingNonSslChannelInitializer, controllingSslChannelInitializer);
     }
 
     @PreDestroy

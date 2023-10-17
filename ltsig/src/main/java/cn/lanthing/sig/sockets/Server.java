@@ -29,42 +29,40 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.sig.handler;
+package cn.lanthing.sig.sockets;
 
-import cn.lanthing.codec.*;
-import cn.lanthing.ltproto.ErrorCodeOuterClass;
-import cn.lanthing.ltproto.signaling.SignalingMessageAckProto;
-import cn.lanthing.ltproto.signaling.SignalingMessageProto;
-import cn.lanthing.sig.service.Session;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Message;
-import lombok.extern.slf4j.Slf4j;
+import cn.lanthing.ltsocket.NonSslChannelInitializer;
+import cn.lanthing.ltsocket.SocketConfig;
+import cn.lanthing.ltsocket.SocketServer;
+import cn.lanthing.ltsocket.SslChannelInitializer;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-@Slf4j
-@MessageType(MessageTypes.kSignalingMessage)
-public class HandlerSignalingMessage implements MessageHandler, MessageCreator {
+@Component
+public class Server {
+    @Autowired
+    private SocketConfig socketConfig;
 
-    @Override
-    public void handle(Session session, LtMessage message) throws Exception {
+    @Autowired
+    private NonSslChannelInitializer nonSslChannelInitializer;
 
-        SignalingMessageAckProto.SignalingMessageAck.Builder ack = SignalingMessageAckProto.SignalingMessageAck.newBuilder();
-        if (session.relayMessage(message)) {
-            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
-        } else {
-            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.SignalingPeerNotOnline);
-        }
-        LtMessage response = new LtMessage(MessageTypes.kSignalingMessageAck, ack.build());
-        session.send(response);
+    @Autowired(required = false)
+    private SslChannelInitializer sslChannelInitializer;
+
+    private SocketServer socketServer;
+
+
+    @PostConstruct
+    public void init() throws Exception {
+        socketServer = new SocketServer(socketConfig, nonSslChannelInitializer, sslChannelInitializer);
     }
 
-    @Override
-    public Message parseFrom(byte[] bytes) {
-        SignalingMessageProto.SignalingMessage msg = null;
-        try {
-            msg = SignalingMessageProto.SignalingMessage.parseFrom(bytes);
-        } catch (InvalidProtocolBufferException e) {
-            log.warn("Parse SignalingMessage failed: {}", e.toString());
+    @PreDestroy
+    public void uninit() throws Exception {
+        if (socketServer != null) {
+            socketServer.stop();
         }
-        return msg;
     }
 }

@@ -39,6 +39,8 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.net.ssl.SSLEngine;
 import java.nio.file.Path;
@@ -46,23 +48,25 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
 public class SslChannelInitializer extends ChannelInitializer<Channel> {
 
     private SslContext sslContext;
 
     private MessageDispatcher messageDispatcher;
 
-    private SecurityConfig securityConfig;
+    private SocketConfig socketConfig;
 
-    public SslChannelInitializer(SecurityConfig securityConfig, MessageDispatcher messageDispatcher) throws Exception {
-        this.securityConfig = securityConfig;
+    public SslChannelInitializer(SocketConfig socketConfig, MessageDispatcher messageDispatcher) throws Exception {
+        this.socketConfig = socketConfig;
         this.messageDispatcher = messageDispatcher;
         init();
     }
 
     private void init() throws Exception {
-        Path certPath = Paths.get(securityConfig.getCertsFolder(), securityConfig.getCertChainFile());
-        Path keyPath = Paths.get(securityConfig.getCertsFolder(), securityConfig.getPrivateKeyFile());
+        Path certPath = Paths.get(socketConfig.getCertsFolder(), socketConfig.getCertChainFile());
+        Path keyPath = Paths.get(socketConfig.getCertsFolder(), socketConfig.getPrivateKeyFile());
         sslContext = SslContextBuilder.forServer(certPath.toFile(), keyPath.toFile()).build();
         List<LtCodec.MsgType> msgTypes = new ArrayList<>();
         for (var msgType : LtProto.values()) {
@@ -82,22 +86,6 @@ public class SslChannelInitializer extends ChannelInitializer<Channel> {
         ch.pipeline().addLast("message", new LtCodec());
         Connection connection = new Connection(messageDispatcher);
         ch.pipeline().addLast("connection", connection);
-    }
-
-    public MessageDispatcher getMessageDispatcher() {
-        return messageDispatcher;
-    }
-
-    public void setMessageDispatcher(MessageDispatcher messageDispatcher) {
-        this.messageDispatcher = messageDispatcher;
-    }
-
-    public SecurityConfig getSecurityConfig() {
-        return securityConfig;
-    }
-
-    public void setSecurityConfig(SecurityConfig securityConfig) {
-        this.securityConfig = securityConfig;
     }
 
 }
