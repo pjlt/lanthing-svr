@@ -75,26 +75,14 @@ public class LtCodec extends MessageToMessageCodec<NetPacket, LtMessage> {
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, LtMessage ltMessage, List<Object> list) {
         NetPacket netPacket = new NetPacket();
-        netPacket.magic = NetPacket.kMagicV1;
-        netPacket.xorKey = (byte)random.nextInt();
-        if (netPacket.xorKey == 0) {
-            netPacket.xorKey = 837;
-        }
-        netPacket.xorKey = 0;
         netPacket.payloadSize = ltMessage.protoMsg.getSerializedSize() + 4;
-        netPacket.payload = Unpooled.buffer((int)netPacket.payloadSize);
+        if (netPacket.payloadSize > 16 * 1024 * 1024) {
+            log.error("LtMessage too long {}", netPacket.payloadSize);
+            return;
+        }
+        netPacket.payload = Unpooled.buffer(netPacket.payloadSize);
         netPacket.payload.writeIntLE((int)ltMessage.type);
         netPacket.payload.writeBytes(ltMessage.protoMsg.toByteArray());
-//        netPacket.payload.forEachByte(new ByteProcessor() {
-//            private int i = 0;
-//            @Override
-//            public boolean process(byte b) throws Exception {
-//                netPacket.payload.setByte(i, b ^ netPacket.xorKey);
-//                i++;
-//                return true;
-//            }
-//        });
-        netPacket.checksum = 0;
         list.add(netPacket);
     }
 
@@ -102,19 +90,6 @@ public class LtCodec extends MessageToMessageCodec<NetPacket, LtMessage> {
     protected void decode(ChannelHandlerContext channelHandlerContext, NetPacket netPacket, List<Object> list) throws Exception {
         try {
             LtMessage message = new LtMessage();
-            if (netPacket.xorKey != 0) {
-                netPacket.payload.forEachByte(new ByteProcessor() {
-                    private int i = 0;
-
-                    @Override
-                    public boolean process(byte b) {
-                        netPacket.payload.setByte(i, b ^ netPacket.xorKey);
-                        i++;
-                        return true;
-                    }
-                });
-            }
-
             message.type = netPacket.payload.readUnsignedIntLE();
             Method createMethod = LtCodec.createMethods.get(message.type);
             if (createMethod == null) {

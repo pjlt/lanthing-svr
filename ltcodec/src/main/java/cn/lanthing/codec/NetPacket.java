@@ -34,11 +34,11 @@ package cn.lanthing.codec;
 import io.netty.buffer.ByteBuf;
 
 public class NetPacket {
-    public static final int kMagicV1 = 0x950414;
-    public static final int kHeaderLength = 12;
-    int magic = kMagicV1; // 只用uint24
-    short xorKey; //只用uint8
-    long payloadSize; // 只用 uint32
-    long checksum; // 只用uint32
+    public static final short kVersion2 = 2;
+    public static final int kHeaderLength = 8;
+
+    short version = kVersion2; //只用uint8
+    int payloadSize; // 只用 uint24
+    long checksum = 0; // 只用uint32
     ByteBuf payload;
 }

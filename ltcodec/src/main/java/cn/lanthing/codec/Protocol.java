@@ -43,9 +43,8 @@ public class Protocol extends ByteToMessageCodec<NetPacket> {
 
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, NetPacket netPacket, ByteBuf byteBuf) {
-        byteBuf.writeMediumLE(netPacket.magic);
-        byteBuf.writeByte(netPacket.xorKey);
-        byteBuf.writeIntLE((int)netPacket.payloadSize);
+        byteBuf.writeByte(netPacket.version);
+        byteBuf.writeMediumLE(netPacket.payloadSize);
         byteBuf.writeIntLE((int)netPacket.checksum);
         byteBuf.writeBytes(netPacket.payload);
         netPacket.payload.release();
@@ -57,18 +56,16 @@ public class Protocol extends ByteToMessageCodec<NetPacket> {
         if (byteBuf.readableBytes() < NetPacket.kHeaderLength) {
             return;
         }
-        netPacket.magic = byteBuf.getUnsignedMediumLE(0);
-        if (netPacket.magic != NetPacket.kMagicV1) {
-            //该断链
-            throw new Exception("xxxx");
+        netPacket.version = byteBuf.getUnsignedByte(0);
+        if (netPacket.version != NetPacket.kVersion2) {
+            throw  new Exception("Unsupported protocol version");
         }
-        netPacket.xorKey = byteBuf.getUnsignedByte(3);
-        netPacket.payloadSize = byteBuf.getUnsignedIntLE(4);
-        netPacket.checksum = byteBuf.getUnsignedIntLE(8);
+        netPacket.payloadSize = byteBuf.getUnsignedMediumLE(1);
+        netPacket.checksum = byteBuf.getUnsignedIntLE(4);
         if (byteBuf.readableBytes() - NetPacket.kHeaderLength < netPacket.payloadSize) {
             return;
         }
-        netPacket.payload = byteBuf.readBytes(NetPacket.kHeaderLength + (int)netPacket.payloadSize);
+        netPacket.payload = byteBuf.readBytes(NetPacket.kHeaderLength + netPacket.payloadSize);
         netPacket.payload.readerIndex(NetPacket.kHeaderLength);
         byteBuf.discardReadBytes();
         list.add(netPacket);
