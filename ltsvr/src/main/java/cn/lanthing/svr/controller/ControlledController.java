@@ -34,6 +34,8 @@ package cn.lanthing.svr.controller;
 import cn.lanthing.codec.LtMessage;
 import cn.lanthing.ltproto.ErrorCodeOuterClass;
 import cn.lanthing.ltproto.LtProto;
+import cn.lanthing.ltproto.common.KeepAliveAckProto;
+import cn.lanthing.ltproto.common.KeepAliveProto;
 import cn.lanthing.ltproto.server.*;
 import cn.lanthing.ltsocket.ConnectionEvent;
 import cn.lanthing.ltsocket.ConnectionEventType;
@@ -46,7 +48,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @MessageController
@@ -169,5 +170,11 @@ public class ControlledController {
             log.warn("Order with room id({}) close failed", msg.getRoomId());
         }
         return null;
+    }
+
+    @MessageMapping(proto = LtProto.KeepAlive)
+    public LtMessage handleKeepAlive(long connectionID, KeepAliveProto.KeepAlive msg) {
+        var ack  = KeepAliveAckProto.KeepAliveAck.newBuilder();
+        return new LtMessage(LtProto.KeepAliveAck.ID, ack.build());
     }
 }
