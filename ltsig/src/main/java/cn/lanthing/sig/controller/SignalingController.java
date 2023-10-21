@@ -32,9 +32,10 @@
 package cn.lanthing.sig.controller;
 
 import cn.lanthing.codec.LtMessage;
-import cn.lanthing.codec.MessageTypes;
 import cn.lanthing.ltproto.ErrorCodeOuterClass;
 import cn.lanthing.ltproto.LtProto;
+import cn.lanthing.ltproto.common.KeepAliveAckProto;
+import cn.lanthing.ltproto.common.KeepAliveProto;
 import cn.lanthing.ltproto.signaling.JoinRoomAckProto;
 import cn.lanthing.ltproto.signaling.JoinRoomProto;
 import cn.lanthing.ltproto.signaling.SignalingMessageAckProto;
@@ -87,7 +88,7 @@ public class SignalingController {
             log.error("Connection {} with session id {} join room {} failed", connectionID, msg.getSessionId(), msg.getRoomId());
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.JoinRoomFailed);
         }
-        return new LtMessage(MessageTypes.kJoinRoomAck, ack.build());
+        return new LtMessage(LtProto.JoinRoomAck.ID, ack.build());
     }
 
     @MessageMapping(proto=LtProto.SignalingMessage)
@@ -97,10 +98,16 @@ public class SignalingController {
         if (peer == null) {
             log.error("Connection {} getPeer failed", connectionID);
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.SignalingPeerNotOnline);
-            return new LtMessage(MessageTypes.kSignalingMessageAck, ack.build());
+            return new LtMessage(LtProto.SignalingMessageAck.ID, ack.build());
         }
         ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
-        socketService.send(peer.getConnectionID(), new LtMessage(MessageTypes.kSignalingMessage, msg));
-        return new LtMessage(MessageTypes.kSignalingMessageAck, ack.build());
+        socketService.send(peer.getConnectionID(), new LtMessage(LtProto.SignalingMessage.ID, msg));
+        return new LtMessage(LtProto.SignalingMessageAck.ID, ack.build());
+    }
+
+    @MessageMapping(proto = LtProto.KeepAlive)
+    public LtMessage handleKeepAlive(long connectionID, KeepAliveProto.KeepAlive msg) {
+        var ack  = KeepAliveAckProto.KeepAliveAck.newBuilder();
+        return new LtMessage(LtProto.KeepAliveAck.ID, ack.build());
     }
 }
