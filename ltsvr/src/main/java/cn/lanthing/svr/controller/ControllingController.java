@@ -129,7 +129,7 @@ public class ControllingController {
             log.warn("Controlled device({}) not online", peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
             ack.setDeviceId(peerDeviceID);
-            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionInvalidStatus)
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionPeerNotOnline)
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
