@@ -37,7 +37,7 @@ public interface ControllingDeviceService {
 
     Long removeSession(long connectionID);
 
-    String loginDevice(long connectionID, long deviceID, String sessionID);
+    boolean loginDevice(long connectionID, long deviceID);
 
     Long getDeviceIDByConnectionID(long connectionID);
 

@@ -58,8 +58,6 @@ public class ControlledDeviceServiceImpl implements ControlledDeviceService {
 
         private boolean allowControl;
 
-        private String sessionID;
-
         private Status status;
 
         Session(long connectionID) {
@@ -96,25 +94,21 @@ public class ControlledDeviceServiceImpl implements ControlledDeviceService {
     }
 
     @Override
-    public String loginDevice(long connectionID, long deviceID, boolean allowControl, String sessionID) {
+    public boolean loginDevice(long connectionID, long deviceID, boolean allowControl) {
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             var session = connIDToSessionMap.get(connectionID);
             if (session == null) {
-                return null;
+                return false;
             }
             if (session.status != Status.Connected) {
                 //已有设备登录或已断开
-                return null;
+                return false;
             }
-            if (Strings.isNullOrEmpty(sessionID)) {
-                sessionID = UUID.randomUUID().toString();
-            }
-            session.sessionID = sessionID;
             session.deviceID = deviceID;
             session.allowControl = allowControl;
             session.status = Status.DeviceLogged;
             deviceIDToConnIDMap.put(deviceID, connectionID);
-            return sessionID;
+            return true;
         }
     }
 

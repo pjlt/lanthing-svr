@@ -1,0 +1,20 @@
+{
+  "versions": [
+    {
+      "major": 0,
+      "minor": 1,
+      "patch": 4,
+      "timestamp": 1698373703,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.1.4",
+      "features": [
+        "aaaaaaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbbbb",
+        "dddddddddddddddddddddd"
+      ],
+      "bugfix": [
+        "AAAAAAAAAAAAAAAAAAAAAA",
+        "BBBBBBBBBBBBBBBBBBBBBB"
+      ]
+    }
+  ]
+}

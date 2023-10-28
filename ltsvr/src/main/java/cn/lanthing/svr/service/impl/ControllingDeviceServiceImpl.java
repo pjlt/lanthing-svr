@@ -94,24 +94,20 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
     }
 
     @Override
-    public String loginDevice(long connectionID, long deviceID, String sessionID) {
+    public boolean loginDevice(long connectionID, long deviceID) {
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             var session = connIDToSessionMap.get(connectionID);
             if (session == null) {
-                return null;
+                return false;
             }
             if (session.status != Status.Connected) {
                 //已有设备登录或已断开
-                return null;
+                return false;
             }
-            if (Strings.isNullOrEmpty(sessionID)) {
-                sessionID = UUID.randomUUID().toString();
-            }
-            session.sessionID = sessionID;
             session.deviceID = deviceID;
             session.status = Status.DeviceLogged;
             deviceIDToConnIDMap.put(deviceID, connectionID);
-            return sessionID;
+            return true;
         }
     }
 

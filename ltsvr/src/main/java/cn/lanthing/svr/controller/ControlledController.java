@@ -96,14 +96,13 @@ public class ControlledController {
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
 
-        String sessionID = controlledDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl(), msg.getSessionId());
-        if (Strings.isNullOrEmpty(sessionID)) {
+        boolean success = controlledDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl());
+        if (!success) {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus);
             log.info("LoginDevice failed({}:{})", connectionID, msg.getDeviceId());
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
-            ack.setSessionId(sessionID);
-            log.info("LoginDevice success({}:{}:{})", connectionID, msg.getDeviceId(), sessionID);
+            log.info("LoginDevice success({}:{})", connectionID, msg.getDeviceId());
         }
         return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
     }
