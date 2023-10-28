@@ -42,6 +42,7 @@ import cn.lanthing.ltsocket.ConnectionEventType;
 import cn.lanthing.ltsocket.MessageController;
 import cn.lanthing.ltsocket.MessageMapping;
 import cn.lanthing.svr.entity.OrderInfo;
+import cn.lanthing.svr.entity.Version;
 import cn.lanthing.svr.service.*;
 import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +67,13 @@ public class ControllingController {
     private ControlledSocketService controlledSocketService;
 
     @Autowired
+    private ControllingSocketService controllingSocketService;
+
+    @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private VersionService versionService;
 
     @ConnectionEvent(type = ConnectionEventType.Connected)
     public void onConnectionConnected(long connectionID) {
@@ -116,6 +123,18 @@ public class ControllingController {
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
             log.info("LoginDevice success({}:{})", connectionID, msg.getDeviceId());
+            Version version = versionService.getNewVersionPC(msg.getVersionMajor(), msg.getVersionMinor(), msg.getVersionPatch());
+            if (version != null) {
+                var newVer = NewVersionProto.NewVersion.newBuilder().
+                        setMajor(version.getMajor())
+                        .setMinor(version.getMinor())
+                        .setPatch(version.getPatch())
+                        .setTimestamp(version.getTimestamp())
+                        .setUrl(version.getUrl())
+                        .addAllFeatures(version.getFeatures())
+                        .addAllBugfix(version.getBugfix());
+                controllingSocketService.send(connectionID, new LtMessage(LtProto.NewVersion.ID, newVer.build()));
+            }
         }
         return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
     }
