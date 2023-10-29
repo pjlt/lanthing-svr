@@ -34,6 +34,7 @@ package cn.lanthing.svr.service.impl;
 import cn.lanthing.svr.dao.IUnusedIDDao;
 import cn.lanthing.svr.dao.IUsedIDDao;
 import cn.lanthing.svr.entity.UnusedIDEntity;
+import cn.lanthing.svr.entity.UsedIDEntity;
 import cn.lanthing.svr.service.DeviceIDService;
 import cn.lanthing.utils.AutoLock;
 import cn.lanthing.utils.AutoReentrantLock;
@@ -52,6 +53,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
@@ -66,25 +68,39 @@ public class DeviceIDServiceImpl implements DeviceIDService {
 
     private final AutoReentrantLock lock = new AutoReentrantLock();
 
+    @PostConstruct
+    public void init() {
+        usedIDDao.createTable();
+    }
+
     @Override
-    public Long allocateDeviceID() {
+    public UsedIDEntity allocateDeviceID() {
         long deviceID;
+        String cookie = UUID.randomUUID().toString();
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             UnusedIDEntity entity = unusedIDDao.getNextDeviceID();
-            //log.info("UnusedIDEntity {}", entity);
             deviceID = entity.getDeviceID();
             unusedIDDao.deleteDeviceID(deviceID);
-            usedIDDao.addDeviceID(deviceID);
+            usedIDDao.addDeviceID(deviceID, cookie);
         }
         log.info("Allocate device id '{}'", deviceID);
-        return deviceID;
+        UsedIDEntity usedIDEntity = new UsedIDEntity();
+        usedIDEntity.setDeviceID(deviceID);
+        usedIDEntity.setCookie(cookie);
+        return usedIDEntity;
     }
 
     @Override
-    public boolean isValidDeviceID(long deviceID) {
+    public UsedIDEntity getUsedDeviceID(long deviceID) {
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            return usedIDDao.isValidID(deviceID);
+            return usedIDDao.queryByDeviceID(deviceID);
         }
     }
 
+    @Override
+    public void updateCookie(long deviceID, String cookie) {
+        try (AutoLock lockGuard = this.lock.lockAsResource()) {
+            usedIDDao.updateCookie(deviceID, cookie);
+        }
+    }
 }

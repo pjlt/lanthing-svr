@@ -2,11 +2,27 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.lanthing.svr.dao.IUsedIDDao">
 
-    <select id="isValidID" parameterType="long" resultType="java.lang.Boolean">
-        select exists(select 1 from used_device_ids where deviceID = #{deviceID})
+    <update id="createTable">
+        CREATE TABLE IF NOT EXISTS used_device_ids2 (
+            "id"	        INTEGER NOT NULL UNIQUE,
+            "created_at"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updated_at"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "device_id"     INTEGER,
+            "cookie"        TEXT,
+            PRIMARY KEY("id" AUTOINCREMENT)
+        );
+        CREATE TRIGGER IF NOT EXISTS UpdateTimestamp
+            AFTER UPDATE
+            ON used_device_ids2
+        BEGIN
+            UPDATE used_device_ids2 SET updated_at = CURRENT_TIMESTAMP WHERE id=OLD.id;
+        END;
+    </update>
+    <select id="queryByDeviceID" parameterType="long" resultType="cn.lanthing.svr.entity.UsedIDEntity">
+        SELECT * FROM used_device_ids2 WHERE device_id = #{deviceID}
     </select>
-    <insert id="addDeviceID" parameterType="long">
-        insert into used_device_ids(deviceID) values (#{deviceID})
+    <insert id="addDeviceID">
+        INSERT INTO used_device_ids(deviceID, cookie) values (#{deviceID}, #{cookie})
     </insert>
 
 </mapper>

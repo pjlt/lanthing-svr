@@ -42,6 +42,7 @@ import cn.lanthing.ltsocket.ConnectionEventType;
 import cn.lanthing.ltsocket.MessageController;
 import cn.lanthing.ltsocket.MessageMapping;
 import cn.lanthing.svr.entity.OrderInfo;
+import cn.lanthing.svr.entity.UsedIDEntity;
 import cn.lanthing.svr.entity.Version;
 import cn.lanthing.svr.service.*;
 import com.google.common.base.Strings;
@@ -95,13 +96,14 @@ public class ControllingController {
 
     @MessageMapping(proto = LtProto.AllocateDeviceID)
     public LtMessage handleAllocateDeviceID(long connectionID, AllocateDeviceIDProto.AllocateDeviceID msg) {
-        Long newID = deviceIDService.allocateDeviceID();
+        UsedIDEntity idEntity = deviceIDService.allocateDeviceID();
         var ack = AllocateDeviceIDAckProto.AllocateDeviceIDAck.newBuilder();
-        if (newID == null) {
+        if (idEntity == null) {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.AllocateDeviceIDNoAvailableID);
         } else {
-            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
-            ack.setDeviceId(newID);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
+                    .setDeviceId(idEntity.getDeviceID())
+                    .setCookie(idEntity.getCookie());
         }
         return new LtMessage(LtProto.AllocateDeviceIDAck.ID, ack.build());
     }
@@ -110,10 +112,22 @@ public class ControllingController {
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
         log.debug("Handling LoginDevice({}:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
-        if (!deviceIDService.isValidDeviceID(msg.getDeviceId())) {
+        UsedIDEntity idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
+        if (idEntity == null) {
+            //TODO: ALLOCATE NEW ID
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
-            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
+            idEntity = deviceIDService.allocateDeviceID();
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID)
+                    .setNewDeviceId(idEntity.getDeviceID())
+                    .setNewCookie(idEntity.getCookie());
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
+        }
+        if (msg.getCookie() != null && !msg.getCookie().isEmpty()) {
+           if (! msg.getCookie().equals(idEntity.getCookie())) {
+               log.warn("LoginDevice failed: device id({}) invalid cookie", msg.getDeviceId());
+           }
+        } else {
+            // 为了兼容以前的客户端，暂时不处理
         }
 
         boolean success = controllingDeviceService.loginDevice(connectionID, msg.getDeviceId());
