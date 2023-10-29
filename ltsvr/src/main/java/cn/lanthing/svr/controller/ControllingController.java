@@ -51,6 +51,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import java.util.Date;
+import java.util.UUID;
+
 @Slf4j
 @MessageController
 @Component
@@ -102,7 +105,8 @@ public class ControllingController {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.AllocateDeviceIDNoAvailableID);
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
-                    .setDeviceId(idEntity.getDeviceID());
+                    .setDeviceId(idEntity.getDeviceID())
+                    .setCookie(idEntity.getCookie());
         }
         return new LtMessage(LtProto.AllocateDeviceIDAck.ID, ack.build());
     }
@@ -132,9 +136,16 @@ public class ControllingController {
                return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
            }
         } else {
-            // 发上来的cookie为空，为了兼容以前的客户端，暂时不处理，等旧版本客户端都没了再处理
+            // 发上来的cookie为空，为了兼容以前的客户端，暂时不处理，等旧版本客户端都没了就当作错误处理
+            ack.setNewCookie(idEntity.getCookie());
         }
-
+        var expiredAt = new Date(idEntity.getUpdateAt().getTime() + 1000L * 60 * 60 * 24 * 7);
+        var now = new Date();
+        if (expiredAt.before(now)) {
+            idEntity.setCookie(UUID.randomUUID().toString());
+            deviceIDService.updateCookie(idEntity.getDeviceID(), idEntity.getCookie());
+            ack.setNewCookie(idEntity.getCookie());
+        }
         // 走到这里，说明id和cookie都对了
         boolean success = controllingDeviceService.loginDevice(connectionID, msg.getDeviceId());
         if (!success) {

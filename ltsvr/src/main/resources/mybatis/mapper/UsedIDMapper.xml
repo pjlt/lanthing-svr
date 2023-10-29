@@ -22,7 +22,10 @@
         SELECT * FROM used_device_ids2 WHERE device_id = #{deviceID}
     </select>
     <insert id="addDeviceID">
-        INSERT INTO used_device_ids(deviceID, cookie) values (#{deviceID}, #{cookie})
+        INSERT INTO used_device_ids(deviceID, cookie) values (#{deviceID}, '#{cookie}')
     </insert>
+    <update id="updateCookie">
+        UPDATE used_device_ids SET cookie = '#{cookie}' WHERE device_id = ${deviceID}
+    </update>
 
 </mapper>
