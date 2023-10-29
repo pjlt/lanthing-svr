@@ -102,8 +102,7 @@ public class ControllingController {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.AllocateDeviceIDNoAvailableID);
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
-                    .setDeviceId(idEntity.getDeviceID())
-                    .setCookie(idEntity.getCookie());
+                    .setDeviceId(idEntity.getDeviceID());
         }
         return new LtMessage(LtProto.AllocateDeviceIDAck.ID, ack.build());
     }
@@ -114,7 +113,7 @@ public class ControllingController {
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
         UsedIDEntity idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
         if (idEntity == null) {
-            //TODO: ALLOCATE NEW ID
+            // 不认识该ID，为客户端分配新ID
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
             idEntity = deviceIDService.allocateDeviceID();
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID)
@@ -122,16 +121,26 @@ public class ControllingController {
                     .setNewCookie(idEntity.getCookie());
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
-        if (msg.getCookie() != null && !msg.getCookie().isEmpty()) {
-           if (! msg.getCookie().equals(idEntity.getCookie())) {
+        if (!msg.getCookie().isEmpty()) {
+           if (!msg.getCookie().equals(idEntity.getCookie())) {
+               // cookie不对，分配新ID
                log.warn("LoginDevice failed: device id({}) invalid cookie", msg.getDeviceId());
+               idEntity = deviceIDService.allocateDeviceID();
+               ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
+                       .setNewDeviceId(idEntity.getDeviceID())
+                       .setNewCookie(idEntity.getCookie());
+               return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
            }
         } else {
-            // 为了兼容以前的客户端，暂时不处理
+            // 发上来的cookie为空，为了兼容以前的客户端，暂时不处理，等旧版本客户端都没了再处理
         }
 
+        // 走到这里，说明id和cookie都对了
         boolean success = controllingDeviceService.loginDevice(connectionID, msg.getDeviceId());
         if (!success) {
+            // 失败暂时有两种可能
+            // 1. 代码bug
+            // 2. 有同id登录了
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus);
             log.info("LoginDevice failed({}:{})", connectionID, msg.getDeviceId());
         } else {
@@ -139,6 +148,7 @@ public class ControllingController {
             log.info("LoginDevice success({}:{})", connectionID, msg.getDeviceId());
             Version version = versionService.getNewVersionPC(msg.getVersionMajor(), msg.getVersionMinor(), msg.getVersionPatch());
             if (version != null) {
+                // version != null说明有新版本
                 var newVer = NewVersionProto.NewVersion.newBuilder().
                         setMajor(version.getMajor())
                         .setMinor(version.getMinor())
