@@ -31,11 +31,20 @@
 	"deviceID"	INTEGER NOT NULL UNIQUE,
 	PRIMARY KEY("id" AUTOINCREMENT)
 	)
-	CREATE TABLE "used_device_ids" (
-		"id"	INTEGER NOT NULL UNIQUE,
-		"deviceID"	INTEGER NOT NULL UNIQUE,
-		PRIMARY KEY("id" AUTOINCREMENT)
-	)
+	CREATE TABLE IF NOT EXISTS used_device_ids2 (
+            "id"	        INTEGER NOT NULL UNIQUE,
+            "createdAt"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "deviceID"     INTEGER,
+            "cookie"        TEXT,
+            PRIMARY KEY("id" AUTOINCREMENT)
+        );
+    CREATE TRIGGER IF NOT EXISTS UpdateTimestamp
+        AFTER UPDATE
+        ON used_device_ids2
+    BEGIN
+        UPDATE used_device_ids2 SET updatedAt = CURRENT_TIMESTAMP WHERE id=OLD.id;
+	END;
 	```
 	- 你可以手动插入自己想要的ID，或者使用[idgenerator](https://github.com/pjlt/idgenerator)自动生成大约9亿个乱序ID，生成的ID每20万存一个文件。
 5. 配置`conf/ltsvr.yml`，配置项比较多，重点如下：
