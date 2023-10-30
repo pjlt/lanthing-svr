@@ -31,9 +31,19 @@
 
 package cn.lanthing.svr.service;
 
-public interface DeviceIDService {
-    Long allocateDeviceID();
+import cn.lanthing.svr.entity.UsedIDEntity;
 
-    boolean isValidDeviceID(long deviceID);
+public interface DeviceIDService {
+
+    enum Status {
+        Ok,
+        InvalidDeviceID,
+        InvalidCookie,
+    }
+    UsedIDEntity allocateDeviceID();
+
+    UsedIDEntity getUsedDeviceID(long deviceID);
+
+    void updateCookie(long deviceID, String cookie);
 
 }

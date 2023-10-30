@@ -42,6 +42,7 @@ import cn.lanthing.ltsocket.ConnectionEventType;
 import cn.lanthing.ltsocket.MessageController;
 import cn.lanthing.ltsocket.MessageMapping;
 import cn.lanthing.svr.entity.OrderInfo;
+import cn.lanthing.svr.entity.UsedIDEntity;
 import cn.lanthing.svr.service.*;
 import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
@@ -90,10 +91,21 @@ public class ControlledController {
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
         log.debug("Handling LoginDevice({}:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
-        if (!deviceIDService.isValidDeviceID(msg.getDeviceId())) {
+        UsedIDEntity idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
+        if (idEntity == null) {
+            // 不认识该id，登录失败
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
+        }
+        if (!msg.getCookie().isEmpty()) {
+            if (!msg.getCookie().equals(idEntity.getCookie())) {
+                // cookie不对，登录失败
+                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
+                return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
+            }
+        } else {
+            // cookie时空的，是老版本，暂时当作正常
         }
 
         boolean success = controlledDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl());

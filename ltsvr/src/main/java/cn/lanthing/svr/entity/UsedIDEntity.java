@@ -29,20 +29,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.dao;
+package cn.lanthing.svr.entity;
 
-import cn.lanthing.svr.entity.UsedIDEntity;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
+import lombok.Data;
+import lombok.ToString;
 
-@Mapper
-public interface IUsedIDDao {
+import java.util.Date;
 
-    void createTable();
-
-    UsedIDEntity queryByDeviceID(long deviceID);
-
-    void addDeviceID(@Param("deviceID") long deviceID, @Param("cookie") String cookie);
-
-    void updateCookie(@Param("deviceID") long deviceID,  @Param("cookie") String cookie);
+@Data
+@ToString
+public class UsedIDEntity {
+    private int id;
+    private Date createdAt;
+    private Date updatedAt;
+    private long deviceID;
+    private String cookie;
 }

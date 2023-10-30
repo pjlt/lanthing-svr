@@ -101,7 +101,7 @@ public class VersionServiceImpl implements VersionService {
         // NOTE: 顺序由提供versions.json的人保证，排最前的就是最新的
         Version newest = vf.getVersions().get(0);
         long newestVersion = newest.getMajor() * 1_000_000L + newest.getMinor() * 1_000L + newest.getPatch();
-        if (clientVersion > newestVersion) {
+        if (clientVersion >= newestVersion) {
             return null;
         }
         return newest;

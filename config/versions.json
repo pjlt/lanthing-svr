@@ -3,17 +3,21 @@
     {
       "major": 0,
       "minor": 1,
-      "patch": 4,
-      "timestamp": 1698373703,
-      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.1.4",
+      "patch": 5,
+      "timestamp": 1698599536,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.1.5",
       "features": [
-        "aaaaaaaaaaaaaaaaaaaaaa",
-        "bbbbbbbbbbbbbbbbbbbbbb",
-        "dddddddddddddddddddddd"
+        "自动检查新版本",
+        "在UI界面显示被控模块是否正常"
       ],
       "bugfix": [
-        "AAAAAAAAAAAAAAAAAAAAAA",
-        "BBBBBBBBBBBBBBBBBBBBBB"
+        "程序路径变动时（比如下载新版本放在了其它目录），被控模块启动失败",
+        "请求连接超时没有弹窗提示",
+        "右下角rtt显示不正确",
+        "在某些网络差的环境，或者主控崩溃，导致主控的‘断链’信号没能发到被控，被控一直卡着，无法接受新连接，需要手动杀进程",
+        "旧版本开源库SDL在析构时引发崩溃",
+        "开源库imgui在io.DeltaTime <= 0.0f 时引发崩溃",
+        "错误回收libuv资源引起崩溃"
       ]
     }
   ]
