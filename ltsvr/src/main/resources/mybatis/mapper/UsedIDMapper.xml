@@ -5,9 +5,9 @@
     <update id="createTable">
         CREATE TABLE IF NOT EXISTS used_device_ids2 (
             "id"	        INTEGER NOT NULL UNIQUE,
-            "created_at"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updated_at"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "device_id"     INTEGER,
+            "createdAt"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "deviceID"     INTEGER,
             "cookie"        TEXT,
             PRIMARY KEY("id" AUTOINCREMENT)
         );
@@ -15,17 +15,17 @@
             AFTER UPDATE
             ON used_device_ids2
         BEGIN
-            UPDATE used_device_ids2 SET updated_at = CURRENT_TIMESTAMP WHERE id=OLD.id;
+            UPDATE used_device_ids2 SET updatedAt = CURRENT_TIMESTAMP WHERE id=OLD.id;
         END;
     </update>
     <select id="queryByDeviceID" parameterType="long" resultType="cn.lanthing.svr.entity.UsedIDEntity">
-        SELECT * FROM used_device_ids2 WHERE device_id = #{deviceID}
+        SELECT * FROM used_device_ids2 WHERE deviceID = #{deviceID}
     </select>
     <insert id="addDeviceID">
-        INSERT INTO used_device_ids(deviceID, cookie) values (#{deviceID}, '#{cookie}')
+        INSERT INTO used_device_ids2(deviceID, cookie) values (#{deviceID}, #{cookie})
     </insert>
     <update id="updateCookie">
-        UPDATE used_device_ids SET cookie = '#{cookie}' WHERE device_id = ${deviceID}
+        UPDATE used_device_ids2 SET cookie = #{cookie} WHERE deviceID = #{deviceID}
     </update>
 
 </mapper>

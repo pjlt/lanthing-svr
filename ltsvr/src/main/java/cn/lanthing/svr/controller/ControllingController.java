@@ -139,7 +139,7 @@ public class ControllingController {
             // 发上来的cookie为空，为了兼容以前的客户端，暂时不处理，等旧版本客户端都没了就当作错误处理
             ack.setNewCookie(idEntity.getCookie());
         }
-        var expiredAt = new Date(idEntity.getUpdateAt().getTime() + 1000L * 60 * 60 * 24 * 7);
+        var expiredAt = new Date(idEntity.getUpdatedAt().getTime() + 1000L * 60 * 60 * 24 * 7);
         var now = new Date();
         if (expiredAt.before(now)) {
             idEntity.setCookie(UUID.randomUUID().toString());

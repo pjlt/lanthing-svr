@@ -33,6 +33,7 @@ package cn.lanthing.svr.dao;
 
 import cn.lanthing.svr.entity.UsedIDEntity;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface IUsedIDDao {
@@ -41,7 +42,7 @@ public interface IUsedIDDao {
 
     UsedIDEntity queryByDeviceID(long deviceID);
 
-    void addDeviceID(long deviceID, String cookie);
+    void addDeviceID(@Param("deviceID") long deviceID, @Param("cookie") String cookie);
 
-    void updateCookie(long deviceID, String cookie);
+    void updateCookie(@Param("deviceID") long deviceID,  @Param("cookie") String cookie);
 }

@@ -40,8 +40,8 @@ import java.util.Date;
 @ToString
 public class UsedIDEntity {
     private int id;
-    private Date createAt;
-    private Date updateAt;
+    private Date createdAt;
+    private Date updatedAt;
     private long deviceID;
     private String cookie;
 }
