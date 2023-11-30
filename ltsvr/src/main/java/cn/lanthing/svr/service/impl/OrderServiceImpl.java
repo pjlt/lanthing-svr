@@ -159,7 +159,7 @@ public class OrderServiceImpl implements OrderService {
             if (orderInfo == null) {
                 return;
             }
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID);
+            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID);
             roomIDToOrderInfoMap.remove(orderInfo.roomID);
         }
     }
