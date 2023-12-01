@@ -3,6 +3,21 @@
     {
       "major": 0,
       "minor": 1,
+      "patch": 8,
+      "timestamp": 1701437430,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.1.8",
+      "features": [
+        "支持UAC下远控",
+        "支持绝对鼠标模式下，同步被控的光标图形",
+        "协商分辨率与刷新率",
+        "新增Linux版",
+        "新增Android版"
+      ],
+      "bugfix": []
+    },
+    {
+      "major": 0,
+      "minor": 1,
       "patch": 7,
       "timestamp": 1698734474,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.1.7",
