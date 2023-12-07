@@ -164,6 +164,7 @@ public class ControllingController {
                         setMajor(version.getMajor())
                         .setMinor(version.getMinor())
                         .setPatch(version.getPatch())
+                        .setForce(version.isForce())
                         .setTimestamp(version.getTimestamp())
                         .setUrl(version.getUrl())
                         .addAllFeatures(version.getFeatures())

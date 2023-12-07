@@ -32,10 +32,12 @@
 package cn.lanthing.svr.entity;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.List;
 
 @Data
+@ToString
 public class VersionFile {
 
     private List<Version> versions;

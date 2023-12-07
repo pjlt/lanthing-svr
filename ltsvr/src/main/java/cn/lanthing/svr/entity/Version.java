@@ -32,15 +32,18 @@
 package cn.lanthing.svr.entity;
 
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.List;
 
 @Data
+@ToString
 public class Version {
     private int major;
     private int minor;
     private int patch;
     private long timestamp;
+    private boolean force = false;
     private String url;
     private List<String> features;
     private List<String> bugfix;
