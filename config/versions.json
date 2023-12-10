@@ -3,6 +3,19 @@
     {
       "major": 0,
       "minor": 1,
+      "patch": 9,
+      "timestamp": 1702036872,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.1.9",
+      "features": [
+        "支持设置端口范围，方便做端口映射"
+      ],
+      "bugfix": [
+        "修复若干已反馈问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 1,
       "patch": 8,
       "timestamp": 1701437430,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.1.8",
