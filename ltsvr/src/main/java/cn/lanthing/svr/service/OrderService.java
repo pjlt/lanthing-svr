@@ -35,7 +35,7 @@ import cn.lanthing.svr.entity.OrderInfo;
 
 public interface OrderService {
 
-    OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID);
+    OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID, boolean newSignaling);
 
     OrderInfo getOrderByControlledDeviceID(long deviceID);
 

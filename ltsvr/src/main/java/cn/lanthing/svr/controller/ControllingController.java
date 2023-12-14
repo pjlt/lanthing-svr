@@ -188,8 +188,17 @@ public class ControllingController {
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
-        var session = controllingDeviceService.getSessionByConnectionID(connectionID);
-        if (session == null || session.deviceID == 0) {
+        var controlledSession = controlledDeviceService.getSessionByConnectionID(peerConnID);
+        if (controlledSession == null || controlledSession.deviceID == 0) {
+            log.warn("Controlled device({}) not login", peerDeviceID);
+            var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
+            ack.setDeviceId(peerDeviceID);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionPeerNotOnline)
+                    .setRequestId(msg.getRequestId());
+            return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
+        }
+        var controllingSession = controllingDeviceService.getSessionByConnectionID(connectionID);
+        if (controllingSession == null || controllingSession.deviceID == 0) {
             // 可能是这个message处理到一半，在另一个线程处理了断链
             log.error("Get device id by connection id failed!");
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
@@ -197,7 +206,8 @@ public class ControllingController {
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
-        OrderInfo orderInfo = orderService.newOrder(session.deviceID, peerDeviceID, msg.getRequestId());
+        boolean newSignaling = controllingSession.version >= 2000 && controlledSession.version >= 2000;
+        OrderInfo orderInfo = orderService.newOrder(controllingSession.deviceID, peerDeviceID, msg.getRequestId(), newSignaling);
         if (orderInfo == null) {
             log.warn("RequestConnection({}->{}) failed", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
@@ -216,7 +226,7 @@ public class ControllingController {
                 .setAccessToken(msg.getAccessToken())
                 .setP2PUsername(orderInfo.p2pUsername)
                 .setP2PPassword(orderInfo.p2pPassword)
-                .setClientDeviceId(session.deviceID)
+                .setClientDeviceId(controllingSession.deviceID)
                 .setCookie(msg.getCookie());
         if (!CollectionUtils.isEmpty(orderInfo.reflexServers)) {
             openConn.addAllReflexServers(orderInfo.reflexServers);
