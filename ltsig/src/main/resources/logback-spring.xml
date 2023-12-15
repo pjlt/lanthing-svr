@@ -8,7 +8,7 @@
     <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/${LOG_PREFIX}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PREFIX}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_PATH}/${LOG_PREFIX}.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>${LOG_RESERVE_DAYS}</maxHistory>
         </rollingPolicy>
         <encoder>
