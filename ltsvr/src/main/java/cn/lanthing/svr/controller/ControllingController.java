@@ -147,7 +147,8 @@ public class ControllingController {
             ack.setNewCookie(idEntity.getCookie());
         }
         // 走到这里，说明id和cookie都对了
-        boolean success = controllingDeviceService.loginDevice(connectionID, msg.getDeviceId());
+        int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();
+        boolean success = controllingDeviceService.loginDevice(connectionID, msg.getDeviceId(), versionNum);
         if (!success) {
             // 失败暂时有两种可能
             // 1. 代码bug
@@ -187,8 +188,17 @@ public class ControllingController {
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
-        Long deviceID = controllingDeviceService.getDeviceIDByConnectionID(connectionID);
-        if (deviceID == null) {
+        var controlledSession = controlledDeviceService.getSessionByConnectionID(peerConnID);
+        if (controlledSession == null || controlledSession.deviceID == 0) {
+            log.warn("Controlled device({}) not login", peerDeviceID);
+            var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
+            ack.setDeviceId(peerDeviceID);
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionPeerNotOnline)
+                    .setRequestId(msg.getRequestId());
+            return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
+        }
+        var controllingSession = controllingDeviceService.getSessionByConnectionID(connectionID);
+        if (controllingSession == null || controllingSession.deviceID == 0) {
             // 可能是这个message处理到一半，在另一个线程处理了断链
             log.error("Get device id by connection id failed!");
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
@@ -196,7 +206,8 @@ public class ControllingController {
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
-        OrderInfo orderInfo = orderService.newOrder(deviceID, peerDeviceID, msg.getRequestId());
+        boolean newSignaling = controllingSession.version >= 2000 && controlledSession.version >= 2000;
+        OrderInfo orderInfo = orderService.newOrder(controllingSession.deviceID, peerDeviceID, msg.getRequestId(), newSignaling);
         if (orderInfo == null) {
             log.warn("RequestConnection({}->{}) failed", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
@@ -215,7 +226,7 @@ public class ControllingController {
                 .setAccessToken(msg.getAccessToken())
                 .setP2PUsername(orderInfo.p2pUsername)
                 .setP2PPassword(orderInfo.p2pPassword)
-                .setClientDeviceId(deviceID)
+                .setClientDeviceId(controllingSession.deviceID)
                 .setCookie(msg.getCookie());
         if (!CollectionUtils.isEmpty(orderInfo.reflexServers)) {
             openConn.addAllReflexServers(orderInfo.reflexServers);
@@ -229,12 +240,12 @@ public class ControllingController {
 
     @MessageMapping(proto = LtProto.CloseConnection)
     public LtMessage handleCloseConnection(long connectionID, CloseConnectionProto.CloseConnection msg) {
-        Long deviceID = controllingDeviceService.getDeviceIDByConnectionID(connectionID);
-        if (deviceID == null) {
+        var session = controllingDeviceService.getSessionByConnectionID(connectionID);
+        if (session == null || session.deviceID == 0) {
             log.error("Get device id by connection id failed");
             return null;
         }
-        boolean success = orderService.closeOrderFromControlling(msg.getRoomId(), deviceID);
+        boolean success = orderService.closeOrderFromControlling(msg.getRoomId(), session.deviceID);
         if (success) {
             log.info("Order with room id({}) closed", msg.getRoomId());
         } else {

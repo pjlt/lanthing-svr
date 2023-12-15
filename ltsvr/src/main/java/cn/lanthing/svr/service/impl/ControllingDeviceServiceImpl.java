@@ -34,12 +34,10 @@ package cn.lanthing.svr.service.impl;
 import cn.lanthing.svr.service.ControllingDeviceService;
 import cn.lanthing.utils.AutoLock;
 import cn.lanthing.utils.AutoReentrantLock;
-import com.google.common.base.Strings;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class ControllingDeviceServiceImpl implements ControllingDeviceService {
@@ -50,22 +48,24 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
         Disconnected
     }
 
-    private static class Session {
+    private static class SessionInner {
 
         private final long connectionID;
 
-        private long deviceID;
+        private long deviceID = 0;
 
         private String sessionID;
 
+        private int version = 0;
+
         private ControllingDeviceServiceImpl.Status status;
 
-        Session(long connectionID) {
+        SessionInner(long connectionID) {
             this.connectionID = connectionID;
         }
     }
 
-    private final Map<Long, Session> connIDToSessionMap = new HashMap<>();
+    private final Map<Long, SessionInner> connIDToSessionMap = new HashMap<>();
 
     private final Map<Long, Long> deviceIDToConnIDMap = new HashMap<>();
 
@@ -73,7 +73,7 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
 
     @Override
     public void addSession(long connectionID) {
-        var session = new Session(connectionID);
+        var session = new SessionInner(connectionID);
         session.status = Status.Connected;
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             connIDToSessionMap.putIfAbsent(connectionID, session);
@@ -94,7 +94,7 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
     }
 
     @Override
-    public boolean loginDevice(long connectionID, long deviceID) {
+    public boolean loginDevice(long connectionID, long deviceID, int version) {
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             var session = connIDToSessionMap.get(connectionID);
             if (session == null) {
@@ -106,16 +106,17 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
             }
             session.deviceID = deviceID;
             session.status = Status.DeviceLogged;
+            session.version = version;
             deviceIDToConnIDMap.put(deviceID, connectionID);
             return true;
         }
     }
 
     @Override
-    public Long getDeviceIDByConnectionID(long connectionID) {
+    public Session getSessionByConnectionID(long connectionID) {
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             var session = connIDToSessionMap.get(connectionID);
-            return session == null ? null : session.deviceID;
+            return session == null ? null : new Session(session.connectionID, session.deviceID, session.version);
         }
     }
 
