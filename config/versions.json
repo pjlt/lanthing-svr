@@ -2,6 +2,18 @@
   "versions": [
     {
       "major": 0,
+      "minor": 2,
+      "patch": 0,
+      "timestamp": 1702732207,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.2.0",
+      "features": [],
+      "bugfix": [
+        "修复大部分30009超时问题",
+        "修复某些环境下没有声音的问题"
+      ]
+    },
+    {
+      "major": 0,
       "minor": 1,
       "patch": 9,
       "timestamp": 1702036872,
