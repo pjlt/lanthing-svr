@@ -64,7 +64,7 @@
 	- 你可能需要申请一张证书，或者使用自签证书
 8. 哈哈，没完呢
 9. 转到项目`lanthing-pc`，配置服务器地址、端口和证书
-	- 将`lanthing-pc/certs/ISRG-Root.cert`里的内容，替换成你要用的证书
+	- 将`lanthing-pc/certs/trusted-root.cert`里的内容，替换成你要用的证书
 	- 修改`options-default.cmake`或`options-user.cmake`里的
 		- LT_SERVER_ADDR：你的服务器地址
 		- LT_SERVER_SVC_PORT：你的`controlled-socket-svr`对外暴露的端口
