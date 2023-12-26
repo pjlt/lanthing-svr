@@ -3,6 +3,25 @@
     {
       "major": 0,
       "minor": 2,
+      "patch": 1,
+      "timestamp": 1703626167,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.2.1",
+      "features": [
+        "支持安卓多点触控"
+      ],
+      "bugfix": [
+        "修复某些环境下引起30009错误码的问题",
+        "修复Windows下中文账户名无法启动的问题",
+        "修复音频捕获失败引发的断链问题",
+        "修复某些环境下没有提示管理员启动的问题",
+        "修复休眠唤醒后，无法重连服务器的问题",
+        "修复没有检测主控端解码能力，导致串流失败的问题（Windows）",
+        "修复串流前插手柄，串流后不识别的问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 2,
       "patch": 0,
       "timestamp": 1702732207,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.2.0",
