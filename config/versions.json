@@ -3,6 +3,24 @@
     {
       "major": 0,
       "minor": 2,
+      "patch": 3,
+      "timestamp": 1705384494,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.2.3",
+      "features": [
+        "优化FPS/RTT/LOSS的显示，可自定义颜色",
+        "支持切换显示器（Android，需配合最新Windows被控）",
+        "虚拟手柄（Android）"
+      ],
+      "bugfix": [
+        "修复alt-tab无法传到被控的问题",
+        "修复某些情况下解码失败，导致画面一直糊的问题",
+        "修复上个版本引入的'双指点击无法触发右键'问题（Android）",
+        "修复若干闪退问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 2,
       "patch": 2,
       "timestamp": 1704492965,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.2.2",
