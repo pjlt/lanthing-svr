@@ -2,6 +2,28 @@
   "versions": [
     {
       "major": 0,
+      "minor": 3,
+      "patch": 0,
+      "timestamp": 1706509306,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.0",
+      "features": [
+        "大幅优化P2P成功率",
+        "允许不传输声音",
+        "允许自定义过滤虚拟组网，比如Tailscale",
+        "允许自定义鼠标加速",
+        "新增log文件夹的快捷方式（Windows）",
+        "显示是否P2P连接（Android）",
+        "更友好的错误提示（Android，Windows）"
+      ],
+      "bugfix": [
+        "修复部分'被控模块掉线'问题",
+        "修复网络波动情况下，弹窗'启动服务失败'的问题",
+        "修复某些安卓机型串流黑屏问题",
+        "修复若干闪退问题"
+      ]
+    },
+    {
+      "major": 0,
       "minor": 2,
       "patch": 3,
       "timestamp": 1705384494,
