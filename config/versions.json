@@ -3,6 +3,21 @@
     {
       "major": 0,
       "minor": 3,
+      "patch": 1,
+      "timestamp": 1706728641,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.1",
+      "features": [
+        "优化带宽估计算法",
+        "提升P2P成功率"
+      ],
+      "bugfix": [
+        "修复捕获声音失败导致的崩溃问题",
+        "修复某些安卓机型串流黑屏问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 3,
       "patch": 0,
       "timestamp": 1706509306,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.0",
