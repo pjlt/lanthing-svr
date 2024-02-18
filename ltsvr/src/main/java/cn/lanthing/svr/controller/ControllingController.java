@@ -227,7 +227,9 @@ public class ControllingController {
                 .setP2PUsername(orderInfo.p2pUsername)
                 .setP2PPassword(orderInfo.p2pPassword)
                 .setClientDeviceId(controllingSession.deviceID)
-                .setCookie(msg.getCookie());
+                .setCookie(msg.getCookie())
+                .setClientVersion(msg.getClientVersion())
+                .setRequiredVersion(msg.getRequiredVersion());
         if (!CollectionUtils.isEmpty(orderInfo.reflexServers)) {
             openConn.addAllReflexServers(orderInfo.reflexServers);
         }
