@@ -3,6 +3,24 @@
     {
       "major": 0,
       "minor": 3,
+      "patch": 2,
+      "timestamp": 1708330555,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.2",
+      "features": [
+        "优化码率控制",
+        "优化画质",
+        "优化帧率控制",
+        "新增H.264软编、软解（Windows）"
+      ],
+      "bugfix": [
+        "修复被控端是AMD显卡的黑屏问题",
+        "修复部分'捕获音频失败'问题",
+        "修复某些中文路径闪退问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 3,
       "patch": 1,
       "timestamp": 1706728641,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.1",
