@@ -159,7 +159,8 @@ public class ControlledController {
                     .setAuthToken(orderInfo.authToken)
                     .setP2PUsername(orderInfo.p2pUsername)
                     .setP2PPassword(orderInfo.p2pPassword)
-                    .setStreamingParams(msg.getStreamingParams());
+                    .setStreamingParams(msg.getStreamingParams())
+                    .setTransportType(msg.getTransportType());
             if (!CollectionUtils.isEmpty(orderInfo.reflexServers)) {
                 ack.addAllReflexServers(orderInfo.reflexServers);
             }

@@ -229,7 +229,8 @@ public class ControllingController {
                 .setClientDeviceId(controllingSession.deviceID)
                 .setCookie(msg.getCookie())
                 .setClientVersion(msg.getClientVersion())
-                .setRequiredVersion(msg.getRequiredVersion());
+                .setRequiredVersion(msg.getRequiredVersion())
+                .setTransportType(msg.getTransportType());
         if (!CollectionUtils.isEmpty(orderInfo.reflexServers)) {
             openConn.addAllReflexServers(orderInfo.reflexServers);
         }
