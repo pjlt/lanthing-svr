@@ -3,6 +3,22 @@
     {
       "major": 0,
       "minor": 3,
+      "patch": 3,
+      "timestamp": 1709539123,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.3",
+      "features": [
+        "优化抗弱网算法",
+        "新增TCP传输",
+        "减小软件体积"
+      ],
+      "bugfix": [
+        "修复切换显示器时闪退问题",
+        "修复丢包率显示错误问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 3,
       "patch": 2,
       "timestamp": 1708330555,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.2",
