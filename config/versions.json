@@ -3,6 +3,23 @@
     {
       "major": 0,
       "minor": 3,
+      "patch": 4,
+      "timestamp": 1710131546,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.4",
+      "features": [
+        "优化带宽估计算法，提升画质"
+      ],
+      "bugfix": [
+        "修复某些环境下的'捕获音频失败'错误",
+        "修复某些双显卡电脑被控失败的问题",
+        "修复某些场景下使用显卡欺骗器被控失败的问题",
+        "修复upnp环境下闪退问题",
+        "修复丢包率一直显示0的问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 3,
       "patch": 3,
       "timestamp": 1709539123,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.3",
