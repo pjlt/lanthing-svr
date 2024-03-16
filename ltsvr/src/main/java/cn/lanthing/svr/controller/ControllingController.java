@@ -206,8 +206,7 @@ public class ControllingController {
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
-        boolean newSignaling = controllingSession.version >= 2000 && controlledSession.version >= 2000;
-        OrderInfo orderInfo = orderService.newOrder(controllingSession.deviceID, peerDeviceID, msg.getRequestId(), newSignaling);
+        OrderInfo orderInfo = orderService.newOrder(controllingSession.deviceID, peerDeviceID, msg.getRequestId());
         if (orderInfo == null) {
             log.warn("RequestConnection({}->{}) failed", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();

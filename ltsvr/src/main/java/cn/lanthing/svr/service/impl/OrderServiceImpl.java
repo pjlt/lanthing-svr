@@ -64,13 +64,13 @@ public class OrderServiceImpl implements OrderService {
     private ReflexRelayConfig reflexRelayConfig;
 
     @Override
-    public OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID, boolean newSignaling) {
+    public OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID) {
         OrderInfo orderInfo = new OrderInfo();
         orderInfo.clientRequestID = clientRequestID;
         orderInfo.fromDeviceID = fromDeviceID;
         orderInfo.toDeviceID = toDeviceID;
-        orderInfo.signalingAddress = newSignaling ? signalingConfig.getIP2() : signalingConfig.getIP();
-        orderInfo.signalingPort = newSignaling ? signalingConfig.getPort2() : signalingConfig.getPort();
+        orderInfo.signalingAddress =  signalingConfig.getIP();
+        orderInfo.signalingPort = signalingConfig.getPort();
         orderInfo.roomID = UUID.randomUUID().toString();
         orderInfo.serviceID = UUID.randomUUID().toString();
         orderInfo.clientID = UUID.randomUUID().toString();
@@ -162,13 +162,5 @@ public class OrderServiceImpl implements OrderService {
             controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID);
             roomIDToOrderInfoMap.remove(orderInfo.roomID);
         }
-    }
-
-    public void setSignalingConfig(SignalingConfig signalingConfig) {
-        this.signalingConfig = signalingConfig;
-    }
-
-    public void setReflexRelayConfig(ReflexRelayConfig reflexRelayConfig) {
-        this.reflexRelayConfig = reflexRelayConfig;
     }
 }
