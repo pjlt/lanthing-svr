@@ -32,6 +32,8 @@
 package cn.lanthing.svr.sockets;
 
 import cn.lanthing.ltsocket.MessageDispatcher;
+import cn.lanthing.svr.controller.ControlledController;
+import cn.lanthing.svr.controller.ControllingController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -45,15 +47,11 @@ public class Dispatcher {
 
     @Bean
     public MessageDispatcher controllingDispatcher() throws Exception {
-        return new MessageDispatcher("cn.lanthing.svr.controller.ControllingController", applicationContext);
+        return new MessageDispatcher(ControllingController.class, applicationContext);
     }
 
     @Bean
     public MessageDispatcher controlledDispatcher() throws Exception {
-        return new MessageDispatcher("cn.lanthing.svr.controller.ControlledController", applicationContext);
-    }
-
-    public void setApplicationContext(ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
+        return new MessageDispatcher(ControlledController.class, applicationContext);
     }
 }

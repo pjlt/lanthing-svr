@@ -42,9 +42,8 @@ import cn.lanthing.ltsocket.ConnectionEventType;
 import cn.lanthing.ltsocket.MessageController;
 import cn.lanthing.ltsocket.MessageMapping;
 import cn.lanthing.svr.entity.OrderInfo;
-import cn.lanthing.svr.entity.UsedIDEntity;
+import cn.lanthing.svr.model.UsedID;
 import cn.lanthing.svr.service.*;
-import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -91,7 +90,7 @@ public class ControlledController {
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
         log.debug("Handling LoginDevice({}:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
-        UsedIDEntity idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
+        UsedID idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
         if (idEntity == null) {
             // 不认识该id，登录失败
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());

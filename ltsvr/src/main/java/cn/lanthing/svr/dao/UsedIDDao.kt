@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,19 +29,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.entity;
+package cn.lanthing.svr.dao
 
-import lombok.Data;
-import lombok.ToString;
+import cn.lanthing.svr.model.UsedID
+import cn.lanthing.svr.model.UsedIDs
+import org.ktorm.database.Database
+import org.ktorm.dsl.*
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Component
 
-import java.util.Date;
+@Component
+class UsedIDDao {
 
-@Data
-@ToString
-public class UsedIDEntity {
-    private int id;
-    private Date createdAt;
-    private Date updatedAt;
-    private long deviceID;
-    private String cookie;
+    @Autowired
+    lateinit var database: Database
+
+    fun queryByDeviceID(deviceID: Long): UsedID? {
+        return try {
+            database
+                .from(UsedIDs)
+                .select()
+                .where { UsedIDs.deviceID eq deviceID.toInt() }
+                .limit(1)
+                .map { row -> UsedIDs.createEntity(row) }
+                .first()
+        } catch (e: NoSuchElementException) {
+            null
+        }
+    }
+
+    fun addDeviceID(deviceID: Long, cookie: String) {
+        database.insert(UsedIDs) {
+            set(it.deviceID, deviceID.toInt())
+            set(it.cookie, cookie)
+        }
+    }
+
+    fun updateCookie(deviceID: Long, cookie: String) {
+        database.update(UsedIDs) {
+            set(it.cookie, cookie)
+            where { it.deviceID eq deviceID.toInt() }
+        }
+    }
 }

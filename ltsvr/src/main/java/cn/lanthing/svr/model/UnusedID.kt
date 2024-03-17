@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,20 +29,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.dao;
+package cn.lanthing.svr.model
 
-import cn.lanthing.svr.entity.UsedIDEntity;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
+import org.ktorm.entity.Entity
+import org.ktorm.schema.Table
+import org.ktorm.schema.datetime
+import org.ktorm.schema.int
+import java.time.LocalDateTime
 
-@Mapper
-public interface IUsedIDDao {
+interface UnusedID : Entity<UnusedID> {
+    companion object : Entity.Factory<UnusedID>()
+    var id: Int
+    var createdAt: LocalDateTime
+    var deviceID: Int
+}
 
-    void createTable();
-
-    UsedIDEntity queryByDeviceID(long deviceID);
-
-    void addDeviceID(@Param("deviceID") long deviceID, @Param("cookie") String cookie);
-
-    void updateCookie(@Param("deviceID") long deviceID,  @Param("cookie") String cookie);
+object UnusedIDs : Table<UnusedID>("unused_device_ids") {
+    val id = int("id").primaryKey().bindTo { it.id }
+    val createdAt = datetime("createdAt").bindTo { it.createdAt }
+    val deviceID = int("deviceID").bindTo { it.deviceID }
 }

@@ -57,11 +57,10 @@ public class MessageDispatcher {
 
     private final Map<ConnectionEventType, GeneralHandler> sessionEventHandlers = new HashMap<>();
 
-    public MessageDispatcher(String controllersPath, ApplicationContext applicationContext) throws Exception {
-        init(controllersPath, applicationContext);
+    public MessageDispatcher(Class<?> controllerClass, ApplicationContext applicationContext) throws Exception {
+        init(controllerClass, applicationContext);
 }
-private void init(String controllerName, ApplicationContext applicationContext) throws Exception {
-    var controller = Class.forName(controllerName);
+private void init(Class<?> controller, ApplicationContext applicationContext) throws Exception {
     Object controllerObject;
     try {
         controllerObject = applicationContext.getBean(controller);

@@ -1,13 +1,6 @@
-spring:
-  main:
-    allow-circular-references: true
-  banner:
-    location: "banner.txt"
-  datasource:
-    url: jdbc:sqlite:/path/to/sqlite.db
-    username:
-    password:
-    driver-class-name: org.sqlite.JDBC
+jdbc:
+  url: jdbc:sqlite:/path/to/sqlite.db
+  driver-class-name: org.sqlite.JDBC
 
 server-address:
   relays:

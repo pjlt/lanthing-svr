@@ -42,8 +42,8 @@ import cn.lanthing.ltsocket.ConnectionEventType;
 import cn.lanthing.ltsocket.MessageController;
 import cn.lanthing.ltsocket.MessageMapping;
 import cn.lanthing.svr.entity.OrderInfo;
-import cn.lanthing.svr.entity.UsedIDEntity;
 import cn.lanthing.svr.entity.Version;
+import cn.lanthing.svr.model.UsedID;
 import cn.lanthing.svr.service.*;
 import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.UUID;
 
@@ -99,14 +100,14 @@ public class ControllingController {
 
     @MessageMapping(proto = LtProto.AllocateDeviceID)
     public LtMessage handleAllocateDeviceID(long connectionID, AllocateDeviceIDProto.AllocateDeviceID msg) {
-        UsedIDEntity idEntity = deviceIDService.allocateDeviceID();
+        var idEntity = deviceIDService.allocateDeviceID();
         var ack = AllocateDeviceIDAckProto.AllocateDeviceIDAck.newBuilder();
         if (idEntity == null) {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.AllocateDeviceIDNoAvailableID);
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
-                    .setDeviceId(idEntity.getDeviceID())
-                    .setCookie(idEntity.getCookie());
+                    .setDeviceId(idEntity.deviceID())
+                    .setCookie(idEntity.cookie());
         }
         return new LtMessage(LtProto.AllocateDeviceIDAck.ID, ack.build());
     }
@@ -115,31 +116,32 @@ public class ControllingController {
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
         log.debug("Handling LoginDevice({}:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
-        UsedIDEntity idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
+        UsedID idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
         if (idEntity == null) {
             // 不认识该ID，为客户端分配新ID
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
-            idEntity = deviceIDService.allocateDeviceID();
+            var newID = deviceIDService.allocateDeviceID();
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID)
-                    .setNewDeviceId(idEntity.getDeviceID())
-                    .setNewCookie(idEntity.getCookie());
+                    .setNewDeviceId(newID.deviceID())
+                    .setNewCookie(newID.cookie());
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
         if (!msg.getCookie().isEmpty()) {
            if (!msg.getCookie().equals(idEntity.getCookie())) {
                // cookie不对，分配新ID
                log.warn("LoginDevice failed: device id({}) invalid cookie", msg.getDeviceId());
-               idEntity = deviceIDService.allocateDeviceID();
+               var newID = deviceIDService.allocateDeviceID();
                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
-                       .setNewDeviceId(idEntity.getDeviceID())
-                       .setNewCookie(idEntity.getCookie());
+                       .setNewDeviceId(newID.deviceID())
+                       .setNewCookie(newID.cookie());
                return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
            }
         } else {
             // 发上来的cookie为空，为了兼容以前的客户端，暂时不处理，等旧版本客户端都没了就当作错误处理
             ack.setNewCookie(idEntity.getCookie());
         }
-        var expiredAt = new Date(idEntity.getUpdatedAt().getTime() + 1000L * 60 * 60 * 24 * 7);
+
+        var expiredAt = new Date((idEntity.getUpdatedAt().toEpochSecond(ZoneOffset.UTC) + 60 * 60 * 24 * 7) * 1000);
         var now = new Date();
         if (expiredAt.before(now)) {
             idEntity.setCookie(UUID.randomUUID().toString());

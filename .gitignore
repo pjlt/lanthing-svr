@@ -95,3 +95,5 @@ application-test.yml
 application-prod.yml
 *.sqlite
 *.sqlite.ok
+ltsvr-*.yml
+ltsig-*.yml

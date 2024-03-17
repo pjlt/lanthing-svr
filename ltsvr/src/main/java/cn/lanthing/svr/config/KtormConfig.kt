@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,29 +29,35 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.entity;
+package cn.lanthing.svr.config
+
+import com.fasterxml.jackson.databind.Module
+import org.ktorm.database.Database
+import org.ktorm.jackson.KtormModule
+import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 
 
-import lombok.ToString;
+@ConfigurationProperties("jdbc")
+data class JdbcConfig (
+    var url: String = "",
+    var driverClassName: String = ""
+)
 
-@ToString
-public class UnusedIDEntity {
-    private int id;
-    private long deviceID;
+@Configuration
+open class KtormConfig {
 
-    public int getId() {
-        return id;
+    @Bean
+    open fun jdbcConfig() : JdbcConfig { return JdbcConfig() }
+
+    @Bean
+    open fun database(): Database {
+        return Database.connect(jdbcConfig().url, driver = jdbcConfig().driverClassName)
     }
 
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public long getDeviceID() {
-        return deviceID;
-    }
-
-    public void setDeviceID(long deviceID) {
-        this.deviceID = deviceID;
+    @Bean
+    open fun ktormModule(): Module {
+        return KtormModule()
     }
 }
