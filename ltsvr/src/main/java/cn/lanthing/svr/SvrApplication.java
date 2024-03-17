@@ -42,5 +42,6 @@ public class SvrApplication {
         SpringApplication application = new SpringApplication(SvrApplication.class);
         application.setWebApplicationType(WebApplicationType.NONE);
         application.run(args);
+        //SpringApplication.run(SvrApplication.class, args);
     }
 }

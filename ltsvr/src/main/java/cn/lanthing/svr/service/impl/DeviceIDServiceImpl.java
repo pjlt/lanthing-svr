@@ -59,11 +59,6 @@ public class DeviceIDServiceImpl implements DeviceIDService {
 
     private final AutoReentrantLock lock = new AutoReentrantLock();
 
-    @PostConstruct
-    public void init() {
-        usedIDDao.createTable();
-    }
-
     @Override
     public DeviceCookiePair allocateDeviceID() {
         long deviceID;

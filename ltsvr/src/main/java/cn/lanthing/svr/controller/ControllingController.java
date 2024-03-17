@@ -120,20 +120,20 @@ public class ControllingController {
         if (idEntity == null) {
             // 不认识该ID，为客户端分配新ID
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
-            idEntity = deviceIDService.allocateDeviceID();
+            var newID = deviceIDService.allocateDeviceID();
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID)
-                    .setNewDeviceId(idEntity.getDeviceID())
-                    .setNewCookie(idEntity.getCookie());
+                    .setNewDeviceId(newID.deviceID())
+                    .setNewCookie(newID.cookie());
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
         if (!msg.getCookie().isEmpty()) {
            if (!msg.getCookie().equals(idEntity.getCookie())) {
                // cookie不对，分配新ID
                log.warn("LoginDevice failed: device id({}) invalid cookie", msg.getDeviceId());
-               idEntity = deviceIDService.allocateDeviceID();
+               var newID = deviceIDService.allocateDeviceID();
                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
-                       .setNewDeviceId(idEntity.getDeviceID())
-                       .setNewCookie(idEntity.getCookie());
+                       .setNewDeviceId(newID.deviceID())
+                       .setNewCookie(newID.cookie());
                return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
            }
         } else {

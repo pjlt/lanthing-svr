@@ -34,23 +34,30 @@ package cn.lanthing.svr.config
 import com.fasterxml.jackson.databind.Module
 import org.ktorm.database.Database
 import org.ktorm.jackson.KtormModule
-import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import javax.sql.DataSource
+
+
+@ConfigurationProperties("jdbc")
+data class JdbcConfig (
+    var url: String = "",
+    var driverClassName: String = ""
+)
 
 @Configuration
-class KtormConfig {
-    @Autowired
-    lateinit var dataSource: DataSource
+open class KtormConfig {
 
     @Bean
-    fun database(): Database {
-        return Database.connectWithSpringSupport(dataSource)
+    open fun jdbcConfig() : JdbcConfig { return JdbcConfig() }
+
+    @Bean
+    open fun database(): Database {
+        return Database.connect(jdbcConfig().url, driver = jdbcConfig().driverClassName)
     }
 
     @Bean
-    fun ktormModule(): Module {
+    open fun ktormModule(): Module {
         return KtormModule()
     }
 }
