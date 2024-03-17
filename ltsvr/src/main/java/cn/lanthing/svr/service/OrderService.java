@@ -31,9 +31,25 @@
 
 package cn.lanthing.svr.service;
 
-import cn.lanthing.svr.entity.OrderInfo;
+import java.util.List;
 
 public interface OrderService {
+
+    record OrderInfo(
+            long fromDeviceID,
+            long toDeviceID,
+            long clientRequestID,
+            String signalingAddress,
+            int signalingPort,
+            String roomID,
+            String serviceID,
+            String clientID,
+            String authToken,
+            String p2pUsername,
+            String p2pPassword,
+            String relayServer,
+            List<String> reflexServers){
+    }
 
     OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID);
 

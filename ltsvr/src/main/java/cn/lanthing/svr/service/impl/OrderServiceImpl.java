@@ -33,7 +33,6 @@ package cn.lanthing.svr.service.impl;
 
 import cn.lanthing.svr.config.ReflexRelayConfig;
 import cn.lanthing.svr.config.SignalingConfig;
-import cn.lanthing.svr.entity.OrderInfo;
 import cn.lanthing.svr.service.OrderService;
 import cn.lanthing.utils.AutoLock;
 import cn.lanthing.utils.AutoReentrantLock;
@@ -42,9 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -65,24 +62,28 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID) {
-        OrderInfo orderInfo = new OrderInfo();
-        orderInfo.clientRequestID = clientRequestID;
-        orderInfo.fromDeviceID = fromDeviceID;
-        orderInfo.toDeviceID = toDeviceID;
-        orderInfo.signalingAddress =  signalingConfig.getIP();
-        orderInfo.signalingPort = signalingConfig.getPort();
-        orderInfo.roomID = UUID.randomUUID().toString();
-        orderInfo.serviceID = UUID.randomUUID().toString();
-        orderInfo.clientID = UUID.randomUUID().toString();
-        orderInfo.authToken = UUID.randomUUID().toString();
-        orderInfo.p2pUsername = RandomStringUtils.randomAlphanumeric(6);
-        orderInfo.p2pPassword = RandomStringUtils.randomAlphanumeric(8);
+        String relayServer = "";
+        List<String> reflexServers = new ArrayList<>();
         if (!CollectionUtils.isEmpty(reflexRelayConfig.getRelays())) {
-            orderInfo.relayServer = reflexRelayConfig.getRelays().get(0);
+            relayServer = reflexRelayConfig.getRelays().get(0);
         }
         if (!CollectionUtils.isEmpty(reflexRelayConfig.getReflexes())){
-            orderInfo.reflexServers = reflexRelayConfig.getReflexes();
+            reflexServers = reflexRelayConfig.getReflexes();
         }
+        OrderInfo orderInfo = new OrderInfo(
+                fromDeviceID,
+                toDeviceID,
+                clientRequestID,
+                signalingConfig.getIP(),
+                signalingConfig.getPort(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                RandomStringUtils.randomAlphanumeric(6),
+                RandomStringUtils.randomAlphanumeric(8),
+                relayServer,
+                reflexServers);
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             var previousValue = controlledDeviceIDToOrderInfoMap.putIfAbsent(toDeviceID, orderInfo);
             if (previousValue != null) {
@@ -94,7 +95,7 @@ public class OrderServiceImpl implements OrderService {
                 controlledDeviceIDToOrderInfoMap.remove(toDeviceID);
                 return null;
             }
-            roomIDToOrderInfoMap.put(orderInfo.roomID, orderInfo);
+            roomIDToOrderInfoMap.put(orderInfo.roomID(), orderInfo);
         }
         return orderInfo;
     }
@@ -113,12 +114,12 @@ public class OrderServiceImpl implements OrderService {
             if (orderInfo == null) {
                 return false;
             }
-            if (orderInfo.toDeviceID != deviceID) {
+            if (orderInfo.toDeviceID() != deviceID) {
                 return false;
             }
             roomIDToOrderInfoMap.remove(roomID);
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID);
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID);
+            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
+            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
             return true;
         }
     }
@@ -130,12 +131,12 @@ public class OrderServiceImpl implements OrderService {
             if (orderInfo == null) {
                 return false;
             }
-            if (orderInfo.fromDeviceID != deviceID) {
+            if (orderInfo.fromDeviceID() != deviceID) {
                 return false;
             }
             roomIDToOrderInfoMap.remove(roomID);
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID);
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID);
+            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
+            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
             return true;
         }
     }
@@ -147,8 +148,8 @@ public class OrderServiceImpl implements OrderService {
             if (orderInfo == null) {
                 return;
             }
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID);
-            roomIDToOrderInfoMap.remove(orderInfo.roomID);
+            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
+            roomIDToOrderInfoMap.remove(orderInfo.roomID());
         }
     }
 
@@ -159,8 +160,8 @@ public class OrderServiceImpl implements OrderService {
             if (orderInfo == null) {
                 return;
             }
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID);
-            roomIDToOrderInfoMap.remove(orderInfo.roomID);
+            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
+            roomIDToOrderInfoMap.remove(orderInfo.roomID());
         }
     }
 }

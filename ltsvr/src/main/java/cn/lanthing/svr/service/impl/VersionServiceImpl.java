@@ -31,8 +31,6 @@
 
 package cn.lanthing.svr.service.impl;
 
-import cn.lanthing.svr.entity.Version;
-import cn.lanthing.svr.entity.VersionFile;
 import cn.lanthing.svr.service.VersionService;
 import cn.lanthing.utils.AutoReentrantLock;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,12 +44,15 @@ import org.springframework.util.CollectionUtils;
 
 
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @EnableScheduling
 @Slf4j
 public class VersionServiceImpl implements VersionService {
+
+    record VersionFile(List<Version> versions) {}
 
     private final AutoReentrantLock lock = new AutoReentrantLock();
 
@@ -79,7 +80,7 @@ public class VersionServiceImpl implements VersionService {
             log.error("Read version from {} success with null", versionFileName);
             return;
         }
-        if (CollectionUtils.isEmpty(newVersionFile.getVersions())) {
+        if (CollectionUtils.isEmpty(newVersionFile.versions())) {
             log.error("Read version from {} success but 'versions' is empty", versionFileName);
             return;
         }
@@ -94,13 +95,13 @@ public class VersionServiceImpl implements VersionService {
         try (var lk = lock.lockAsResource()) {
             vf = this.versionFile;
         }
-        if (vf == null || CollectionUtils.isEmpty(vf.getVersions())) {
+        if (vf == null || CollectionUtils.isEmpty(vf.versions())) {
             return null;
         }
         long clientVersion = clientMajor * 1_000_000L + clientMinor * 1_000L + clientPatch;
         // NOTE: 顺序由提供versions.json的人保证，排最前的就是最新的
-        Version newest = vf.getVersions().get(0);
-        long newestVersion = newest.getMajor() * 1_000_000L + newest.getMinor() * 1_000L + newest.getPatch();
+        Version newest = vf.versions().get(0);
+        long newestVersion = newest.major() * 1_000_000L + newest.minor() * 1_000L + newest.patch();
         if (clientVersion >= newestVersion) {
             return null;
         }

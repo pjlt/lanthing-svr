@@ -41,8 +41,6 @@ import cn.lanthing.ltsocket.ConnectionEvent;
 import cn.lanthing.ltsocket.ConnectionEventType;
 import cn.lanthing.ltsocket.MessageController;
 import cn.lanthing.ltsocket.MessageMapping;
-import cn.lanthing.svr.entity.OrderInfo;
-import cn.lanthing.svr.entity.Version;
 import cn.lanthing.svr.model.UsedID;
 import cn.lanthing.svr.service.*;
 import com.google.common.base.Strings;
@@ -155,18 +153,18 @@ public class ControllingController {
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
             log.info("LoginDevice success({}:{})", connectionID, msg.getDeviceId());
-            Version version = versionService.getNewVersionPC(msg.getVersionMajor(), msg.getVersionMinor(), msg.getVersionPatch());
+            VersionService.Version version = versionService.getNewVersionPC(msg.getVersionMajor(), msg.getVersionMinor(), msg.getVersionPatch());
             if (version != null) {
                 // version != null说明有新版本
                 var newVer = NewVersionProto.NewVersion.newBuilder().
-                        setMajor(version.getMajor())
-                        .setMinor(version.getMinor())
-                        .setPatch(version.getPatch())
-                        .setForce(version.isForce())
-                        .setTimestamp(version.getTimestamp())
-                        .setUrl(version.getUrl())
-                        .addAllFeatures(version.getFeatures())
-                        .addAllBugfix(version.getBugfix());
+                        setMajor(version.major())
+                        .setMinor(version.minor())
+                        .setPatch(version.patch())
+                        .setForce(version.force())
+                        .setTimestamp(version.timestamp())
+                        .setUrl(version.url())
+                        .addAllFeatures(version.features())
+                        .addAllBugfix(version.bugfix());
                 controllingSocketService.send(connectionID, new LtMessage(LtProto.NewVersion.ID, newVer.build()));
             }
         }
@@ -203,7 +201,7 @@ public class ControllingController {
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
-        OrderInfo orderInfo = orderService.newOrder(controllingSession.deviceID, peerDeviceID, msg.getRequestId());
+        OrderService.OrderInfo orderInfo = orderService.newOrder(controllingSession.deviceID, peerDeviceID, msg.getRequestId());
         if (orderInfo == null) {
             log.warn("RequestConnection({}->{}) failed", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
@@ -213,25 +211,25 @@ public class ControllingController {
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
         var openConn = OpenConnectionProto.OpenConnection.newBuilder();
-        openConn.setSignalingAddr(orderInfo.signalingAddress)
-                .setSignalingPort(orderInfo.signalingPort)
-                .setRoomId(orderInfo.roomID)
-                .setServiceId(orderInfo.serviceID)
-                .setAuthToken(orderInfo.authToken)
+        openConn.setSignalingAddr(orderInfo.signalingAddress())
+                .setSignalingPort(orderInfo.signalingPort())
+                .setRoomId(orderInfo.roomID())
+                .setServiceId(orderInfo.serviceID())
+                .setAuthToken(orderInfo.authToken())
                 .setStreamingParams(msg.getStreamingParams())
                 .setAccessToken(msg.getAccessToken())
-                .setP2PUsername(orderInfo.p2pUsername)
-                .setP2PPassword(orderInfo.p2pPassword)
+                .setP2PUsername(orderInfo.p2pUsername())
+                .setP2PPassword(orderInfo.p2pPassword())
                 .setClientDeviceId(controllingSession.deviceID)
                 .setCookie(msg.getCookie())
                 .setClientVersion(msg.getClientVersion())
                 .setRequiredVersion(msg.getRequiredVersion())
                 .setTransportType(msg.getTransportType());
-        if (!CollectionUtils.isEmpty(orderInfo.reflexServers)) {
-            openConn.addAllReflexServers(orderInfo.reflexServers);
+        if (!CollectionUtils.isEmpty(orderInfo.reflexServers())) {
+            openConn.addAllReflexServers(orderInfo.reflexServers());
         }
-        if (!Strings.isNullOrEmpty(orderInfo.relayServer)) {
-            openConn.addRelayServers(orderInfo.relayServer);
+        if (!Strings.isNullOrEmpty(orderInfo.relayServer())) {
+            openConn.addRelayServers(orderInfo.relayServer());
         }
         controlledSocketService.send(peerConnID, new LtMessage(LtProto.OpenConnection.ID, openConn.build()));
         return null;

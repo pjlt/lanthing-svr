@@ -31,9 +31,19 @@
 
 package cn.lanthing.svr.service;
 
-import cn.lanthing.svr.entity.Version;
+import java.util.List;
 
 public interface VersionService {
+    record Version (
+        int major,
+        int minor,
+        int patch,
+        long timestamp,
+        boolean force,
+        String url,
+        List<String> features,
+        List<String> bugfix)
+    {}
     Version getNewVersionPC(int clientMajor, int clientMinor, int clientPatch);
     Version getNewVersionAndroid(int clientMajor, int clientMinor, int clientPatch);
     Version getNewVersionIOS(int clientMajor, int clientMinor, int clientPatch);
