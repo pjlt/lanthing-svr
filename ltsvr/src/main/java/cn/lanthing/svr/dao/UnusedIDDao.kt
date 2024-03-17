@@ -45,18 +45,36 @@ class UnusedIDDao {
     lateinit var database: Database
 
     fun getNextDeviceID(): UnusedID? {
-        return database
-            .from(UnusedIDs)
-            .select()
-            .orderBy(UnusedIDs.id.asc())
-            .limit(1)
-            .map { row -> UnusedIDs.createEntity(row) }
-            .first()
+        return try {
+            fromTable()
+                .select()
+                .orderBy(UnusedIDs.id.asc())
+                .limit(1)
+                .map { row -> UnusedIDs.createEntity(row) }
+                .first()
+        } catch (e: NoSuchElementException) {
+            null
+        }
     }
 
     fun deleteDeviceID(deviceID: Long) {
         database.delete(UnusedIDs) {
                 it.deviceID eq deviceID.toInt()
             }
+    }
+
+    fun countID() : Int {
+        val result = fromTable()
+            .select(count())
+            .map { it.getInt(0) }
+        return if (result.isEmpty()) {
+            0
+        } else {
+            result[0]
+        }
+    }
+
+    private fun fromTable() : QuerySource {
+        return database.from(UnusedIDs)
     }
 }

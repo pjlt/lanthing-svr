@@ -64,8 +64,12 @@ public class DeviceIDServiceImpl implements DeviceIDService {
         long deviceID;
         String cookie = UUID.randomUUID().toString();
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            UnusedID entity = unusedIDDao.getNextDeviceID();
-            deviceID = entity.getDeviceID();
+            UnusedID unnUsedID = unusedIDDao.getNextDeviceID();
+            if (unnUsedID == null) {
+                log.error("Get next unused device id failed");
+                return null;
+            }
+            deviceID = unnUsedID.getDeviceID();
             unusedIDDao.deleteDeviceID(deviceID);
             usedIDDao.addDeviceID(deviceID, cookie);
         }
@@ -84,6 +88,15 @@ public class DeviceIDServiceImpl implements DeviceIDService {
     public void updateCookie(long deviceID, String cookie) {
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             usedIDDao.updateCookie(deviceID, cookie);
+        }
+    }
+
+    @Override
+    public DeviceIDStat getDeviceIDStat() {
+        try (AutoLock lockGuard = this.lock.lockAsResource()) {
+            var usedCount = usedIDDao.countID();
+            var unUsedCount = unusedIDDao.countID();
+            return new DeviceIDStat(usedCount, unUsedCount);
         }
     }
 }

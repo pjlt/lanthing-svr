@@ -29,60 +29,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.dao
+package cn.lanthing.svr.controller;
 
-import cn.lanthing.svr.model.UsedID
-import cn.lanthing.svr.model.UsedIDs
-import org.ktorm.database.Database
-import org.ktorm.dsl.*
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Component
+import cn.lanthing.svr.service.DeviceIDService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@Component
-class UsedIDDao {
+@RestController
+public class ManagerController {
 
     @Autowired
-    lateinit var database: Database
+    private DeviceIDService deviceIDService;
 
-    fun queryByDeviceID(deviceID: Long): UsedID? {
-        return try {
-            fromTable()
-                .select()
-                .where { UsedIDs.deviceID eq deviceID.toInt() }
-                .limit(1)
-                .map { row -> UsedIDs.createEntity(row) }
-                .first()
-        } catch (e: NoSuchElementException) {
-            null
-        }
+    @GetMapping("/mgr/devices")
+    public DeviceIDService.DeviceIDStat devices() {
+        return deviceIDService.getDeviceIDStat();
     }
 
-    fun addDeviceID(deviceID: Long, cookie: String) {
-        database.insert(UsedIDs) {
-            set(it.deviceID, deviceID.toInt())
-            set(it.cookie, cookie)
-        }
+    @GetMapping("/mgr/devices/online")
+    public Integer devicesOnline() {
+        return 0;
     }
 
-    fun updateCookie(deviceID: Long, cookie: String) {
-        database.update(UsedIDs) {
-            set(it.cookie, cookie)
-            where { it.deviceID eq deviceID.toInt() }
-        }
-    }
-
-    fun countID() : Int {
-        val result = fromTable()
-            .select(count())
-            .map { it.getInt(0) }
-        return if (result.isEmpty()) {
-            0
-        } else {
-            result[0]
-        }
-    }
-
-    private fun fromTable() : QuerySource {
-        return database.from(UsedIDs)
+    @GetMapping("/mgr/orders")
+    public Integer orders(@RequestParam("index") Integer index) {
+        return 0;
     }
 }
