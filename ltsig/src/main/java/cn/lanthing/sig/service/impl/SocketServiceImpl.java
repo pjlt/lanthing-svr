@@ -35,11 +35,13 @@ import cn.lanthing.codec.LtMessage;
 import cn.lanthing.ltsocket.MessageDispatcher;
 import cn.lanthing.sig.service.SocketService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SocketServiceImpl implements SocketService {
     @Autowired
+    @Lazy
     private MessageDispatcher messageDispatcher;
 
     @Override

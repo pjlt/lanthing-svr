@@ -32,6 +32,7 @@
 package cn.lanthing.sig.sockets;
 
 import cn.lanthing.ltsocket.MessageDispatcher;
+import cn.lanthing.sig.controller.SignalingController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -45,11 +46,6 @@ public class Dispatcher {
 
     @Bean
     public MessageDispatcher messageDispatcher() throws Exception {
-        return new MessageDispatcher("cn.lanthing.sig.controller.SignalingController", applicationContext);
-    }
-
-
-    public void setApplicationContext(ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
+        return new MessageDispatcher(SignalingController.class, applicationContext);
     }
 }
