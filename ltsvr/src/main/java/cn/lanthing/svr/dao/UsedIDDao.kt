@@ -45,23 +45,27 @@ class UsedIDDao {
     lateinit var database: Database
 
     fun queryByDeviceID(deviceID: Long): UsedID? {
-        return database
-            .from(UsedIDs)
-            .select()
-            .where { UsedIDs.deviceID eq deviceID.toInt() }
-            .limit(1)
-            .map { row -> UsedIDs.createEntity(row) }
-            .first()
+        return try {
+            database
+                .from(UsedIDs)
+                .select()
+                .where { UsedIDs.deviceID eq deviceID.toInt() }
+                .limit(1)
+                .map { row -> UsedIDs.createEntity(row) }
+                .first()
+        } catch (e: NoSuchElementException) {
+            null
+        }
     }
 
-    fun addDeviceID(deviceID: Long, cookie: String?) {
+    fun addDeviceID(deviceID: Long, cookie: String) {
         database.insert(UsedIDs) {
             set(it.deviceID, deviceID.toInt())
             set(it.cookie, cookie)
         }
     }
 
-    fun updateCookie(deviceID: Long, cookie: String?) {
+    fun updateCookie(deviceID: Long, cookie: String) {
         database.update(UsedIDs) {
             set(it.cookie, cookie)
             where { it.deviceID eq deviceID.toInt() }
