@@ -90,21 +90,25 @@ public class ControlledController {
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
         log.debug("Handling LoginDevice({}:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
-        UsedID idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
-        if (idEntity == null) {
+        UsedID usedID = deviceIDService.getUsedDeviceID(msg.getDeviceId());
+        if (usedID == null) {
             // 不认识该id，登录失败
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
         if (!msg.getCookie().isEmpty()) {
-            if (!msg.getCookie().equals(idEntity.getCookie())) {
+            if (!msg.getCookie().equals(usedID.getCookie())) {
                 // cookie不对，登录失败
+                log.warn("LoginDevice(deviceID:{} with wrong cookie", usedID.getDeviceID());
                 ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
                 return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
             }
         } else {
-            // cookie时空的，是老版本，暂时当作正常
+            // 空cookie，客户端代码错误
+            log.warn("LoginDevice(deviceID:{}) with empty cookie", msg.getDeviceId());
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
+            return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
 
         int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();

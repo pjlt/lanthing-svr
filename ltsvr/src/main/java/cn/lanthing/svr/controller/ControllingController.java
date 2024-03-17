@@ -100,24 +100,24 @@ public class ControllingController {
 
     @MessageMapping(proto = LtProto.AllocateDeviceID)
     public LtMessage handleAllocateDeviceID(long connectionID, AllocateDeviceIDProto.AllocateDeviceID msg) {
-        var idEntity = deviceIDService.allocateDeviceID();
+        var newID = deviceIDService.allocateDeviceID();
         var ack = AllocateDeviceIDAckProto.AllocateDeviceIDAck.newBuilder();
-        if (idEntity == null) {
+        if (newID == null) {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.AllocateDeviceIDNoAvailableID);
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
-                    .setDeviceId(idEntity.deviceID())
-                    .setCookie(idEntity.cookie());
+                    .setDeviceId(newID.deviceID())
+                    .setCookie(newID.cookie());
         }
         return new LtMessage(LtProto.AllocateDeviceIDAck.ID, ack.build());
     }
 
     @MessageMapping(proto = LtProto.LoginDevice)
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
-        log.debug("Handling LoginDevice({}:{})", connectionID, msg.getDeviceId());
+        log.debug("Handling LoginDevice(connectionID:{}, deviceID:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
-        UsedID idEntity = deviceIDService.getUsedDeviceID(msg.getDeviceId());
-        if (idEntity == null) {
+        UsedID usedID = deviceIDService.getUsedDeviceID(msg.getDeviceId());
+        if (usedID == null) {
             // 不认识该ID，为客户端分配新ID
             log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
             var newID = deviceIDService.allocateDeviceID();
@@ -126,27 +126,22 @@ public class ControllingController {
                     .setNewCookie(newID.cookie());
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
-        if (!msg.getCookie().isEmpty()) {
-           if (!msg.getCookie().equals(idEntity.getCookie())) {
-               // cookie不对，分配新ID
-               log.warn("LoginDevice failed: device id({}) invalid cookie", msg.getDeviceId());
-               var newID = deviceIDService.allocateDeviceID();
-               ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
-                       .setNewDeviceId(newID.deviceID())
-                       .setNewCookie(newID.cookie());
-               return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
-           }
-        } else {
-            // 发上来的cookie为空，为了兼容以前的客户端，暂时不处理，等旧版本客户端都没了就当作错误处理
-            ack.setNewCookie(idEntity.getCookie());
+        if (msg.getCookie().isEmpty() || !msg.getCookie().equals(usedID.getCookie())) {
+            // cookie不对，分配新ID
+            log.warn("LoginDevice (deviceID:{}) with invalid cookie", msg.getDeviceId());
+            var newID = deviceIDService.allocateDeviceID();
+            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
+                    .setNewDeviceId(newID.deviceID())
+                    .setNewCookie(newID.cookie());
+            return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
 
-        var expiredAt = new Date((idEntity.getUpdatedAt().toEpochSecond(ZoneOffset.UTC) + 60 * 60 * 24 * 7) * 1000);
+        var expiredAt = new Date((usedID.getUpdatedAt().toEpochSecond(ZoneOffset.UTC) + 60 * 60 * 24 * 7) * 1000);
         var now = new Date();
         if (expiredAt.before(now)) {
-            idEntity.setCookie(UUID.randomUUID().toString());
-            deviceIDService.updateCookie(idEntity.getDeviceID(), idEntity.getCookie());
-            ack.setNewCookie(idEntity.getCookie());
+            usedID.setCookie(UUID.randomUUID().toString());
+            deviceIDService.updateCookie(usedID.getDeviceID(), usedID.getCookie());
+            ack.setNewCookie(usedID.getCookie());
         }
         // 走到这里，说明id和cookie都对了
         int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();

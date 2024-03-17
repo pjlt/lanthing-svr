@@ -31,13 +31,11 @@
 
 package cn.lanthing.svr.config;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@Setter
-@Getter
+@Data
 @Component
 @ConfigurationProperties("signaling")
 public class SignalingConfig {
@@ -45,9 +43,5 @@ public class SignalingConfig {
     private String IP;
 
     private int port;
-
-    private String IP2;
-
-    private int port2;
 
 }

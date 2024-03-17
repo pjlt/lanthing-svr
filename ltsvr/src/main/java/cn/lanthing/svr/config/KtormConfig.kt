@@ -34,6 +34,8 @@ package cn.lanthing.svr.config
 import com.fasterxml.jackson.databind.Module
 import org.ktorm.database.Database
 import org.ktorm.jackson.KtormModule
+import org.ktorm.logging.Slf4jLoggerAdapter
+import org.slf4j.Logger
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -53,7 +55,10 @@ open class KtormConfig {
 
     @Bean
     open fun database(): Database {
-        return Database.connect(jdbcConfig().url, driver = jdbcConfig().driverClassName)
+        return Database.connect(
+            url = jdbcConfig().url,
+            driver = jdbcConfig().driverClassName,
+            logger = Slf4jLoggerAdapter(Logger.ROOT_LOGGER_NAME))
     }
 
     @Bean

@@ -31,11 +31,9 @@
 
 package cn.lanthing.ltsocket;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public final class SocketConfig {
 
     private String IP;
