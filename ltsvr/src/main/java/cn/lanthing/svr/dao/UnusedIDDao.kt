@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,18 +29,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr;
+package cn.lanthing.svr.dao
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import cn.lanthing.svr.model.UnusedID
+import cn.lanthing.svr.model.UnusedIDs
+import org.ktorm.database.Database
+import org.ktorm.dsl.*
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Component
 
-@SpringBootApplication
-public class SvrApplication {
+@Component
+class UnusedIDDao {
 
-    public static void main(String[] args) {
-        SpringApplication application = new SpringApplication(SvrApplication.class);
-        application.setWebApplicationType(WebApplicationType.NONE);
-        application.run(args);
+    @Autowired
+    lateinit var database: Database
+
+    fun getNextDeviceID(): UnusedID? {
+        return database
+            .from(UnusedIDs)
+            .select()
+            .orderBy(UnusedIDs.id.asc())
+            .limit(1)
+            .map { row -> UnusedIDs.createEntity(row) }
+            .first()
+    }
+
+    fun deleteDeviceID(deviceID: Long) {
+        database.delete(UnusedIDs) {
+                it.deviceID eq deviceID.toInt()
+            }
     }
 }

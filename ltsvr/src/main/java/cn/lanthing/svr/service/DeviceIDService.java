@@ -31,7 +31,7 @@
 
 package cn.lanthing.svr.service;
 
-import cn.lanthing.svr.entity.UsedIDEntity;
+import cn.lanthing.svr.model.UsedID;
 
 public interface DeviceIDService {
 
@@ -40,9 +40,11 @@ public interface DeviceIDService {
         InvalidDeviceID,
         InvalidCookie,
     }
-    UsedIDEntity allocateDeviceID();
+    record DeviceCookiePair(Long deviceID, String cookie){}
 
-    UsedIDEntity getUsedDeviceID(long deviceID);
+    DeviceCookiePair allocateDeviceID();
+
+    UsedID getUsedDeviceID(long deviceID);
 
     void updateCookie(long deviceID, String cookie);
 

@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,14 +29,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.dao;
+package cn.lanthing.svr.model
 
-import cn.lanthing.svr.entity.UnusedIDEntity;
-import org.apache.ibatis.annotations.Mapper;
+import org.ktorm.entity.Entity
+import org.ktorm.schema.*
+import java.time.LocalDateTime
 
-@Mapper
-public interface IUnusedIDDao {
-    UnusedIDEntity getNextDeviceID();
+interface UsedID : Entity<UsedID> {
+    companion object : Entity.Factory<UsedID>()
+    var id: Int
+    var createdAt: LocalDateTime
+    var updatedAt: LocalDateTime
+    var deviceID: Int
+    var cookie: String
+}
 
-    void deleteDeviceID(long deviceID);
+object UsedIDs : Table<UsedID>("used_device_ids2") {
+    val id = int("id").primaryKey().bindTo { it.id }
+    val createdAt = datetime("createdAt").bindTo { it.createdAt }
+    val updatedAt = datetime("updatedAt").bindTo { it.updatedAt }
+    val deviceID = int("deviceID").bindTo { it.deviceID }
+    val cookie = text("cookie").bindTo { it.cookie }
 }

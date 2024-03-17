@@ -31,40 +31,31 @@
 
 package cn.lanthing.svr.service.impl;
 
-import cn.lanthing.svr.dao.IUnusedIDDao;
-import cn.lanthing.svr.dao.IUsedIDDao;
-import cn.lanthing.svr.entity.UnusedIDEntity;
-import cn.lanthing.svr.entity.UsedIDEntity;
+import cn.lanthing.svr.dao.UnusedIDDao;
+import cn.lanthing.svr.dao.UsedIDDao;
+import cn.lanthing.svr.model.UnusedID;
+import cn.lanthing.svr.model.UsedID;
+import cn.lanthing.svr.model.UsedIDs;
 import cn.lanthing.svr.service.DeviceIDService;
 import cn.lanthing.utils.AutoLock;
 import cn.lanthing.utils.AutoReentrantLock;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+
 import java.util.UUID;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
 public class DeviceIDServiceImpl implements DeviceIDService {
 
-    @Resource
-    private IUnusedIDDao unusedIDDao;
+    @Autowired
+    private UnusedIDDao unusedIDDao;
 
-    @Resource
-    private IUsedIDDao usedIDDao;
+    @Autowired
+    private UsedIDDao usedIDDao;
 
     private final AutoReentrantLock lock = new AutoReentrantLock();
 
@@ -74,24 +65,21 @@ public class DeviceIDServiceImpl implements DeviceIDService {
     }
 
     @Override
-    public UsedIDEntity allocateDeviceID() {
+    public DeviceCookiePair allocateDeviceID() {
         long deviceID;
         String cookie = UUID.randomUUID().toString();
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            UnusedIDEntity entity = unusedIDDao.getNextDeviceID();
+            UnusedID entity = unusedIDDao.getNextDeviceID();
             deviceID = entity.getDeviceID();
             unusedIDDao.deleteDeviceID(deviceID);
             usedIDDao.addDeviceID(deviceID, cookie);
         }
         log.info("Allocate device id '{}'", deviceID);
-        UsedIDEntity usedIDEntity = new UsedIDEntity();
-        usedIDEntity.setDeviceID(deviceID);
-        usedIDEntity.setCookie(cookie);
-        return usedIDEntity;
+        return new DeviceCookiePair(deviceID, cookie);
     }
 
     @Override
-    public UsedIDEntity getUsedDeviceID(long deviceID) {
+    public UsedID getUsedDeviceID(long deviceID) {
         try (AutoLock lockGuard = this.lock.lockAsResource()) {
             return usedIDDao.queryByDeviceID(deviceID);
         }
