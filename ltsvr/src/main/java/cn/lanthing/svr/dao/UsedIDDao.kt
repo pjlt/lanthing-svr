@@ -46,7 +46,8 @@ class UsedIDDao {
 
     fun queryByDeviceID(deviceID: Long): UsedID? {
         return try {
-            fromTable()
+            database
+                .from(UsedIDs)
                 .select()
                 .where { UsedIDs.deviceID eq deviceID.toInt() }
                 .limit(1)
@@ -72,7 +73,8 @@ class UsedIDDao {
     }
 
     fun countID() : Int {
-        val result = fromTable()
+        val result = database
+            .from(UsedIDs)
             .select(count())
             .map { it.getInt(0) }
         return if (result.isEmpty()) {
@@ -80,9 +82,5 @@ class UsedIDDao {
         } else {
             result[0]
         }
-    }
-
-    private fun fromTable() : QuerySource {
-        return database.from(UsedIDs)
     }
 }

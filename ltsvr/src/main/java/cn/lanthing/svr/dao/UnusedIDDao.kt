@@ -46,7 +46,8 @@ class UnusedIDDao {
 
     fun getNextDeviceID(): UnusedID? {
         return try {
-            fromTable()
+            database
+                .from(UnusedIDs)
                 .select()
                 .orderBy(UnusedIDs.id.asc())
                 .limit(1)
@@ -64,7 +65,8 @@ class UnusedIDDao {
     }
 
     fun countID() : Int {
-        val result = fromTable()
+        val result = database
+            .from(UnusedIDs)
             .select(count())
             .map { it.getInt(0) }
         return if (result.isEmpty()) {
@@ -74,7 +76,4 @@ class UnusedIDDao {
         }
     }
 
-    private fun fromTable() : QuerySource {
-        return database.from(UnusedIDs)
-    }
 }

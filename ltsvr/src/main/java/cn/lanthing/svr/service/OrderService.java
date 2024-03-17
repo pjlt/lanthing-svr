@@ -31,9 +31,23 @@
 
 package cn.lanthing.svr.service;
 
+import cn.lanthing.svr.model.Order;
+
 import java.util.List;
 
 public interface OrderService {
+
+    record BasicOrderInfo(
+            long fromDeviceID,
+            long toDeviceID
+    ) {
+        static BasicOrderInfo createFrom(OrderInfo orderInfo) {
+            return new BasicOrderInfo(
+                    orderInfo.fromDeviceID(),
+                    orderInfo.toDeviceID()
+            );
+        }
+    }
 
     record OrderInfo(
             long fromDeviceID,
@@ -48,12 +62,13 @@ public interface OrderService {
             String p2pUsername,
             String p2pPassword,
             String relayServer,
-            List<String> reflexServers){
-    }
+            List<String> reflexServers){}
+
+    record HistoryOrders(int total, int index, int limit, List<BasicOrderInfo> orders) {}
 
     OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID);
 
-    OrderInfo getOrderByControlledDeviceID(long deviceID);
+    Order getOrderByControlledDeviceID(long deviceID);
 
     boolean closeOrderFromControlled(String roomID, long deviceID);
 
@@ -62,4 +77,6 @@ public interface OrderService {
     void controllingDeviceLogout(long deviceID);
 
     void controlledDeviceLogout(long deviceID);
+
+    HistoryOrders getHistoryOrders(int index, int limit);
 }

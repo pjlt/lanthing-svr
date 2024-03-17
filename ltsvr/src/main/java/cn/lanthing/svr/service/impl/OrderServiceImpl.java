@@ -33,9 +33,9 @@ package cn.lanthing.svr.service.impl;
 
 import cn.lanthing.svr.config.ReflexRelayConfig;
 import cn.lanthing.svr.config.SignalingConfig;
+import cn.lanthing.svr.dao.OrderDao;
+import cn.lanthing.svr.model.Order;
 import cn.lanthing.svr.service.OrderService;
-import cn.lanthing.utils.AutoLock;
-import cn.lanthing.utils.AutoReentrantLock;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,19 +46,14 @@ import java.util.*;
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    private final Map<Long, OrderInfo> controlledDeviceIDToOrderInfoMap = new HashMap<>();
-
-    private final Map<Long, OrderInfo> controllingDeviceIDToOrderInfoMap = new HashMap<>();
-
-    private final Map<String, OrderInfo> roomIDToOrderInfoMap = new HashMap<>();
-
-    private final AutoReentrantLock lock = new AutoReentrantLock();
-
     @Autowired
     private SignalingConfig signalingConfig;
 
     @Autowired
     private ReflexRelayConfig reflexRelayConfig;
+
+    @Autowired
+    private OrderDao orderDao;
 
     @Override
     public OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID) {
@@ -84,84 +79,47 @@ public class OrderServiceImpl implements OrderService {
                 RandomStringUtils.randomAlphanumeric(8),
                 relayServer,
                 reflexServers);
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var previousValue = controlledDeviceIDToOrderInfoMap.putIfAbsent(toDeviceID, orderInfo);
-            if (previousValue != null) {
-                //已经在被控，打log怕影响到锁了
-                return null;
-            }
-            previousValue = controllingDeviceIDToOrderInfoMap.putIfAbsent(fromDeviceID, orderInfo);
-            if (previousValue != null) {
-                controlledDeviceIDToOrderInfoMap.remove(toDeviceID);
-                return null;
-            }
-            roomIDToOrderInfoMap.put(orderInfo.roomID(), orderInfo);
+        boolean success = orderDao.insertOrder(orderInfo);
+        if (success) {
+            return orderInfo;
+        } else {
+            return null;
         }
-        return orderInfo;
     }
 
     @Override
-    public OrderInfo getOrderByControlledDeviceID(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            return controlledDeviceIDToOrderInfoMap.get(deviceID);
-        }
+    public Order getOrderByControlledDeviceID(long deviceID) {
+        return orderDao.queryOrderByToDeviceID((int) deviceID);
     }
 
     @Override
     public boolean closeOrderFromControlled(String roomID, long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var orderInfo = roomIDToOrderInfoMap.get(roomID);
-            if (orderInfo == null) {
-                return false;
-            }
-            if (orderInfo.toDeviceID() != deviceID) {
-                return false;
-            }
-            roomIDToOrderInfoMap.remove(roomID);
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
-            return true;
-        }
+        return orderDao.finishByToDeviceClose(roomID, (int)deviceID);
     }
 
     @Override
     public boolean closeOrderFromControlling(String roomID, long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var orderInfo = roomIDToOrderInfoMap.get(roomID);
-            if (orderInfo == null) {
-                return false;
-            }
-            if (orderInfo.fromDeviceID() != deviceID) {
-                return false;
-            }
-            roomIDToOrderInfoMap.remove(roomID);
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
-            return true;
-        }
+        return orderDao.finishByFromDeviceClose(roomID, (int)deviceID);
     }
 
     @Override
     public void controlledDeviceLogout(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var orderInfo = controlledDeviceIDToOrderInfoMap.remove(deviceID);
-            if (orderInfo == null) {
-                return;
-            }
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
-            roomIDToOrderInfoMap.remove(orderInfo.roomID());
-        }
+        orderDao.finishByToDeviceLogout((int)deviceID);
     }
 
     @Override
     public void controllingDeviceLogout(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var orderInfo = controllingDeviceIDToOrderInfoMap.remove(deviceID);
-            if (orderInfo == null) {
-                return;
-            }
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
-            roomIDToOrderInfoMap.remove(orderInfo.roomID());
+        orderDao.finishByFromDeviceLogout((int)deviceID);
+    }
+
+    @Override
+    public HistoryOrders getHistoryOrders(int index, int limit) {
+        var orders = orderDao.queryHistoryOrders(index, limit);
+        var total = orderDao.countOrder();
+        List<BasicOrderInfo> basicOrderInfos = new ArrayList<>();
+        for (var order : orders) {
+            basicOrderInfos.add(new BasicOrderInfo(order.getFromDeviceID(), order.getToDeviceID()));
         }
+        return new HistoryOrders(total, index, limit, basicOrderInfos);
     }
 }

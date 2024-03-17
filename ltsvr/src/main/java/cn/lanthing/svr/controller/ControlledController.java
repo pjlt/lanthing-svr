@@ -41,12 +41,15 @@ import cn.lanthing.ltsocket.ConnectionEvent;
 import cn.lanthing.ltsocket.ConnectionEventType;
 import cn.lanthing.ltsocket.MessageController;
 import cn.lanthing.ltsocket.MessageMapping;
+import cn.lanthing.svr.model.Order;
 import cn.lanthing.svr.model.UsedID;
 import cn.lanthing.svr.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+
+import java.util.Arrays;
 
 @Slf4j
 @MessageController
@@ -129,42 +132,42 @@ public class ControlledController {
             log.error("Get device id by connection id failed!");
             return null;
         }
-        OrderService.OrderInfo orderInfo = orderService.getOrderByControlledDeviceID(session.deviceID);
-        if (orderInfo == null) {
+        Order order = orderService.getOrderByControlledDeviceID(session.deviceID);
+        if (order == null) {
             log.error("Get order info by device id({}) failed", session.deviceID);
             return null;
         }
-        Long controllingConnectionID = controllingDeviceService.getConnectionIDByDeviceID(orderInfo.fromDeviceID());
+        Long controllingConnectionID = controllingDeviceService.getConnectionIDByDeviceID(order.getFromDeviceID());
         if (controllingConnectionID == null) {
-            log.warn("Get connection id by controlling device id({}) failed", orderInfo.fromDeviceID());
+            log.warn("Get connection id by controlling device id({}) failed", order.getFromDeviceID());
             return null;
         }
         var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
         ack.setDeviceId(session.deviceID);
         if (msg.getErrCode() != ErrorCodeOuterClass.ErrorCode.Success) {
             ack.setErrCode(msg.getErrCode())
-                    .setRequestId(orderInfo.clientRequestID());
-            boolean success = orderService.closeOrderFromControlled(orderInfo.roomID(), orderInfo.toDeviceID());
+                    .setRequestId(order.getClientRequestID());
+            boolean success = orderService.closeOrderFromControlled(order.getRoomID(), order.getToDeviceID());
             if (success) {
-                log.info("Order with room id({}) closed", orderInfo.roomID());
+                log.info("Order with room id({}) closed", order.getRoomID());
             } else {
-                log.warn("Order with room id({}) close failed", orderInfo.roomID());
+                log.warn("Order with room id({}) close failed", order.getRoomID());
             }
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
-                    .setRequestId(orderInfo.clientRequestID())
-                    .setDeviceId(orderInfo.toDeviceID())
-                    .setSignalingAddr(orderInfo.signalingAddress())
-                    .setSignalingPort(orderInfo.signalingPort())
-                    .setRoomId(orderInfo.roomID())
-                    .setClientId(orderInfo.clientID())
-                    .setAuthToken(orderInfo.authToken())
-                    .setP2PUsername(orderInfo.p2pUsername())
-                    .setP2PPassword(orderInfo.p2pPassword())
+                    .setRequestId(order.getClientRequestID())
+                    .setDeviceId(order.getToDeviceID())
+                    .setSignalingAddr(order.getSignalingHost())
+                    .setSignalingPort(order.getSignalingPort())
+                    .setRoomId(order.getRoomID())
+                    .setClientId(order.getClientID())
+                    .setAuthToken(order.getAuthToken())
+                    .setP2PUsername(order.getP2pUser())
+                    .setP2PPassword(order.getP2pToken())
                     .setStreamingParams(msg.getStreamingParams())
                     .setTransportType(msg.getTransportType());
-            if (!CollectionUtils.isEmpty(orderInfo.reflexServers())) {
-                ack.addAllReflexServers(orderInfo.reflexServers());
+            if (!order.getReflexServers().isEmpty()) {
+                ack.addAllReflexServers(Arrays.asList(order.getReflexServers().split(",")));
             }
         }
         controllingSocketService.send(controllingConnectionID, new LtMessage(LtProto.RequestConnectionAck.ID, ack.build()));

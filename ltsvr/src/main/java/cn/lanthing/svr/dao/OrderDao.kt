@@ -29,39 +29,68 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.controller;
+package cn.lanthing.svr.dao
 
-import cn.lanthing.svr.service.DeviceIDService;
-import cn.lanthing.svr.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import cn.lanthing.svr.model.Order
+import cn.lanthing.svr.model.Orders
+import cn.lanthing.svr.service.OrderService.OrderInfo
+import org.ktorm.database.Database
+import org.ktorm.dsl.*
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Component
 
-
-@RestController
-public class ManagerController {
-
+@Component
+class OrderDao {
     @Autowired
-    private DeviceIDService deviceIDService;
+    private lateinit var database: Database
 
-    @Autowired
-    private OrderService orderService;
-
-    @GetMapping("/mgr/devices")
-    public DeviceIDService.DeviceIDStat devices() {
-        return deviceIDService.getDeviceIDStat();
+    fun queryOrderByToDeviceID(toDeviceID: Int) : Order? {
+        return try {
+            database
+                .from(Orders)
+                .select()
+                .where { Orders.toDeviceID eq toDeviceID }
+                .limit(1)
+                .map { row -> Orders.createEntity(row) }
+                .first()
+        } catch (e: NoSuchElementException) {
+            null
+        }
     }
 
-    @GetMapping("/mgr/devices/online")
-    public int devicesOnline() {
-        return 0;
+    fun queryHistoryOrders(index: Int, limit: Int) : List<Order> {
+        return ArrayList()
     }
 
-    @GetMapping("/mgr/orders")
-    public OrderService.HistoryOrders orders(@RequestParam("index") int index , @RequestParam("limit") int limit) {
-        final int kMaxOrdersPerQuery = 50;
-        limit = Math.min(limit, kMaxOrdersPerQuery);
-        return orderService.getHistoryOrders(index, limit);
+    fun insertOrder(orderInfo: OrderInfo) : Boolean {
+        return false
+    }
+
+    fun finishByFromDeviceLogout(fromDeviceID: Int) {
+
+    }
+
+    fun finishByToDeviceLogout(toDeviceID: Int) {
+
+    }
+
+    fun finishByFromDeviceClose(roomID: String, fromDeviceID: Int) : Boolean {
+        return false
+    }
+
+    fun finishByToDeviceClose(roomID: String, toDeviceID: Int) : Boolean {
+        return false
+    }
+
+    fun countOrder() : Int {
+        val result = database
+            .from(Orders)
+            .select(count())
+            .map { it.getInt(0) }
+        return if (result.isEmpty()) {
+            0
+        } else {
+            result[0]
+        }
     }
 }
