@@ -3,6 +3,24 @@
     {
       "major": 0,
       "minor": 3,
+      "patch": 5,
+      "timestamp": 1710799727,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.5",
+      "features": [
+        "共享剪切板（仅文本）",
+        "允许切换鼠标模式（Android）"
+      ],
+      "bugfix": [
+        "修复一处英特尔核显编码错误",
+        "修复无声卡环境串流失败问题",
+        "修复软编码下Android串流失败问题",
+        "修复Android退出串流时闪退问题",
+        "修复Android无法重连服务器的问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 3,
       "patch": 4,
       "timestamp": 1710131546,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.4",
