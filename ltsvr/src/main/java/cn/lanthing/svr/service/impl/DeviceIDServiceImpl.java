@@ -61,14 +61,14 @@ public class DeviceIDServiceImpl implements DeviceIDService {
         synchronized (this) {
             UnusedID unnUsedID = unusedIDDao.getNextDeviceID();
             if (unnUsedID == null) {
-                log.error("Get next unused device id failed");
+                log.error("Get next unused deviceID failed");
                 return null;
             }
             deviceID = unnUsedID.getDeviceID();
             unusedIDDao.deleteDeviceID(deviceID);
             usedIDDao.addDeviceID(deviceID, cookie);
         }
-        log.info("Allocate device id '{}'", deviceID);
+        log.info("Allocated new deviceID '{}'", deviceID);
         return new DeviceCookiePair(deviceID, cookie);
     }
 
@@ -79,9 +79,7 @@ public class DeviceIDServiceImpl implements DeviceIDService {
 
     @Override
     public synchronized void updateCookie(long deviceID, String cookie) {
-
         usedIDDao.updateCookie(deviceID, cookie);
-
     }
 
     @Override

@@ -19,7 +19,6 @@
         <module>ltcodec</module>
         <module>ltsocket</module>
         <module>ltsvr</module>
-        <module>ltutil</module>
         <module>ltsig</module>
     </modules>
 
