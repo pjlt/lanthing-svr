@@ -58,10 +58,10 @@ public class ControlledController {
     private DeviceIDService deviceIDService;
 
     @Autowired
-    private ControlledDeviceService controlledDeviceService;
+    private ControlledSessionService controlledSessionService;
 
     @Autowired
-    private ControllingDeviceService controllingDeviceService;
+    private ControllingSessionService controllingSessionService;
 
     @Autowired
     private ControllingSocketService controllingSocketService;
@@ -72,12 +72,12 @@ public class ControlledController {
     @ConnectionEvent(type = ConnectionEventType.Connected)
     public void onConnectionConnected(long connectionID) {
         log.info("Accepted new connection({})", connectionID);
-        controlledDeviceService.addSession(connectionID);
+        controlledSessionService.addSession(connectionID);
     }
 
     @ConnectionEvent(type = ConnectionEventType.Closed)
     public void onConnectionClosed(long connectionID) {
-        Long deviceID = controlledDeviceService.removeSession(connectionID);
+        Long deviceID = controlledSessionService.removeSession(connectionID);
         if (deviceID != null) {
             log.info("Device(connectionID:{}, deviceID:{}) connection closed", connectionID, deviceID);
             orderService.controlledDeviceLogout(deviceID);
@@ -88,7 +88,7 @@ public class ControlledController {
 
     @ConnectionEvent(type = ConnectionEventType.UnexpectedlyClosed)
     public void onConnectionUnexpectedlyClosed(long connectionID) {
-        Long deviceID = controlledDeviceService.removeSession(connectionID);
+        Long deviceID = controlledSessionService.removeSession(connectionID);
         if (deviceID != null) {
             log.info("Device(connectionID:{}, deviceID:{}) connection closed", connectionID, deviceID);
             orderService.controlledDeviceLogout(deviceID);
@@ -117,7 +117,7 @@ public class ControlledController {
         }
 
         int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();
-        boolean success = controlledDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl(), versionNum, msg.getOsType().toString());
+        boolean success = controlledSessionService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl(), versionNum, msg.getOsType().toString());
         if (!success) {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus);
             log.info("LoginDevice(connectionID:{}, deviceID:{}) failed", connectionID, msg.getDeviceId());
@@ -130,7 +130,7 @@ public class ControlledController {
 
     @MessageMapping(proto = LtProto.OpenConnectionAck)
     public LtMessage handleOpenConnectionAck(long connectionID, OpenConnectionAckProto.OpenConnectionAck msg) {
-        var session = controlledDeviceService.getSessionByConnectionID(connectionID);
+        var session = controlledSessionService.getSessionByConnectionID(connectionID);
         if (session == null || session.deviceID() == 0) {
             log.error("Handle OpenConnectionAck(connectionID:{}) get deviceID by connectionID failed", connectionID);
             return null;
@@ -140,7 +140,7 @@ public class ControlledController {
             log.error("OpenConnectionAck(connectionID:{}, deviceID:{}) get order by deviceID failed", connectionID, session.deviceID());
             return null;
         }
-        Long controllingConnectionID = controllingDeviceService.getConnectionIDByDeviceID(order.getFromDeviceID());
+        Long controllingConnectionID = controllingSessionService.getConnectionIDByDeviceID(order.getFromDeviceID());
         if (controllingConnectionID == null) {
             log.error("OpenConnectionAck(connectionID:{}, deviceID:{}, fromDeviceID:{}) get connectionID by fromDeviceID failed", connectionID, session.deviceID(), order.getFromDeviceID());
             return null;
@@ -181,7 +181,7 @@ public class ControlledController {
 
     @MessageMapping(proto = LtProto.CloseConnection)
     public LtMessage handleCloseConnection(long connectionID, CloseConnectionProto.CloseConnection msg) {
-        var session = controlledDeviceService.getSessionByConnectionID(connectionID);
+        var session = controlledSessionService.getSessionByConnectionID(connectionID);
         if (session == null || session.deviceID() == 0) {
             log.error("CloseConnection(connectionID:{}, roomID:{}) get session by connectionID failed", connectionID, msg.getRoomId());
             return null;

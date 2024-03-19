@@ -31,14 +31,14 @@
 
 package cn.lanthing.svr.service.impl;
 
-import cn.lanthing.svr.service.ControllingDeviceService;
+import cn.lanthing.svr.service.ControlledSessionService;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class ControllingDeviceServiceImpl implements ControllingDeviceService {
+public class ControlledSessionServiceImpl implements ControlledSessionService {
 
     private enum Status {
         Connected,
@@ -52,11 +52,13 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
 
         private long deviceID = 0;
 
-        private String sessionID;
+        private boolean allowControl;
+
+        private Status status;
 
         private int version = 0;
 
-        private ControllingDeviceServiceImpl.Status status;
+        private String os = "";
 
         SessionInner(long connectionID) {
             this.connectionID = connectionID;
@@ -66,6 +68,8 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
     private final Map<Long, SessionInner> connIDToSessionMap = new HashMap<>();
 
     private final Map<Long, Long> deviceIDToConnIDMap = new HashMap<>();
+
+    //private final AutoReentrantLock lock = new AutoReentrantLock();
 
     @Override
     public void addSession(long connectionID) {
@@ -78,6 +82,7 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
 
     @Override
     public synchronized Long removeSession(long connectionID) {
+
         var session = connIDToSessionMap.remove(connectionID);
         if (session != null) {
             deviceIDToConnIDMap.remove(session.deviceID);
@@ -85,11 +90,11 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
         } else {
             return null;
         }
+
     }
 
     @Override
-    public synchronized boolean loginDevice(long connectionID, long deviceID, int version, String os) {
-
+    public synchronized boolean loginDevice(long connectionID, long deviceID, boolean allowControl, int version, String os) {
         var session = connIDToSessionMap.get(connectionID);
         if (session == null) {
             return false;
@@ -99,21 +104,27 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
             return false;
         }
         session.deviceID = deviceID;
+        session.allowControl = allowControl;
         session.status = Status.DeviceLogged;
         session.version = version;
+        session.os = os;
         deviceIDToConnIDMap.put(deviceID, connectionID);
         return true;
+    }
 
+    @Override
+    public synchronized Session getSessionByDeviceID(long deviceID) {
+        Long connectionID = deviceIDToConnIDMap.get(deviceID);
+        if (connectionID == null) {
+            return null;
+        }
+        var session = connIDToSessionMap.get(connectionID);
+        return session == null ? null : new Session(session.connectionID, session.deviceID, session.version, session.os);
     }
 
     @Override
     public synchronized Session getSessionByConnectionID(long connectionID) {
         var session = connIDToSessionMap.get(connectionID);
-        return session == null ? null : new Session(session.connectionID, session.deviceID, session.version);
-    }
-
-    @Override
-    public synchronized Long getConnectionIDByDeviceID(long deviceID) {
-        return deviceIDToConnIDMap.get(deviceID);
+        return session == null ? null : new Session(session.connectionID, session.deviceID, session.version, session.os);
     }
 }

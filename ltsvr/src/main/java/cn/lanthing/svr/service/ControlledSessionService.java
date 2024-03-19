@@ -31,17 +31,17 @@
 
 package cn.lanthing.svr.service;
 
-public interface ControllingDeviceService {
+public interface ControlledSessionService {
 
-    record Session(long connectionID, long deviceID, int version) {}
+    record Session(long connectionID, long deviceID, int version, String os) {}
 
     void addSession(long connectionID);
 
     Long removeSession(long connectionID);
 
-    boolean loginDevice(long connectionID, long deviceID, int version, String os);
+    boolean loginDevice(long connectionID, long deviceID, boolean allowControl, int version, String os);
+
+    Session getSessionByDeviceID(long deviceID);
 
     Session getSessionByConnectionID(long connectionID);
-
-    Long getConnectionIDByDeviceID(long deviceID);
 }

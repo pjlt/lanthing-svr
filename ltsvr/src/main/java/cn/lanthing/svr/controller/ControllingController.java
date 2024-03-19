@@ -61,10 +61,10 @@ public class ControllingController {
     private DeviceIDService deviceIDService;
 
     @Autowired
-    private ControllingDeviceService controllingDeviceService;
+    private ControllingSessionService controllingSessionService;
 
     @Autowired
-    private ControlledDeviceService controlledDeviceService;
+    private ControlledSessionService controlledSessionService;
 
     @Autowired
     private ControlledSocketService controlledSocketService;
@@ -81,12 +81,12 @@ public class ControllingController {
     @ConnectionEvent(type = ConnectionEventType.Connected)
     public void onConnectionConnected(long connectionID) {
         log.info("Accepted new connection({})", connectionID);
-        controllingDeviceService.addSession(connectionID);
+        controllingSessionService.addSession(connectionID);
     }
 
     @ConnectionEvent(type = ConnectionEventType.Closed)
     public void onConnectionClosed(long connectionID) {
-        Long deviceID = controllingDeviceService.removeSession(connectionID);
+        Long deviceID = controllingSessionService.removeSession(connectionID);
         if (deviceID != null) {
             log.info("Device(connectionID:{}, deviceID:{}) connection closed", connectionID, deviceID);
             orderService.controllingDeviceLogout(deviceID);
@@ -97,7 +97,7 @@ public class ControllingController {
 
     @ConnectionEvent(type = ConnectionEventType.UnexpectedlyClosed)
     public void onConnectionUnexpectedlyClosed(long connectionID) {
-        Long deviceID = controllingDeviceService.removeSession(connectionID);
+        Long deviceID = controllingSessionService.removeSession(connectionID);
         if (deviceID != null) {
             log.info("Device(connectionID:{}, deviceID:{}) connection unexpectedly closed", connectionID, deviceID);
             orderService.controllingDeviceLogout(deviceID);
@@ -169,7 +169,7 @@ public class ControllingController {
         }
         // 走到这里，说明id和cookie都对了
         int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();
-        boolean success = controllingDeviceService.loginDevice(connectionID, msg.getDeviceId(), versionNum, msg.getOsType().toString());
+        boolean success = controllingSessionService.loginDevice(connectionID, msg.getDeviceId(), versionNum, msg.getOsType().toString());
         if (!success) {
             // 失败暂时有两种可能
             // 1. 代码bug
@@ -200,7 +200,7 @@ public class ControllingController {
     @MessageMapping(proto = LtProto.RequestConnection)
     public LtMessage handleRequestConnection(long connectionID, RequestConnectionProto.RequestConnection msg) {
         long peerDeviceID = msg.getDeviceId();
-        var controlledSession = controlledDeviceService.getSessionByDeviceID(peerDeviceID);
+        var controlledSession = controlledSessionService.getSessionByDeviceID(peerDeviceID);
         if (controlledSession == null) {
             log.warn("Handle RequestConnection(connectionID:{}, toDeviceID:{}), but peer not online", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
@@ -211,7 +211,7 @@ public class ControllingController {
         } else {
             log.info("Handle RequestConnection(connectionID:{}, peer connectionID:{}, toDeviceID:{}", connectionID, controlledSession.connectionID(), peerDeviceID);
         }
-        var controllingSession = controllingDeviceService.getSessionByConnectionID(connectionID);
+        var controllingSession = controllingSessionService.getSessionByConnectionID(connectionID);
         if (controllingSession == null || controllingSession.deviceID() == 0) {
             // 可能是这个message处理到一半，在另一个线程处理了断链
             log.error("RequestConnection(connectionID:{}, toDeviceID:{}) get controlling session by connectionID failed", connectionID, peerDeviceID);
@@ -256,7 +256,7 @@ public class ControllingController {
 
     @MessageMapping(proto = LtProto.CloseConnection)
     public LtMessage handleCloseConnection(long connectionID, CloseConnectionProto.CloseConnection msg) {
-        var session = controllingDeviceService.getSessionByConnectionID(connectionID);
+        var session = controllingSessionService.getSessionByConnectionID(connectionID);
         if (session == null || session.deviceID() == 0) {
             log.error("CloseConnection(connectionID:{}, roomID:{}) get session by connectionID failed", connectionID, msg.getRoomId());
             return null;
