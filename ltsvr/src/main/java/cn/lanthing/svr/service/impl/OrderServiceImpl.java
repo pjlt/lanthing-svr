@@ -116,10 +116,10 @@ public class OrderServiceImpl implements OrderService {
     public HistoryOrders getHistoryOrders(int index, int limit) {
         var orders = orderDao.queryHistoryOrders(index, limit);
         var total = orderDao.countOrder();
-        List<BasicOrderInfo> basicOrderInfos = new ArrayList<>();
+        List<BasicOrderInfo> basicOrders = new ArrayList<>();
         for (var order : orders) {
-            basicOrderInfos.add(new BasicOrderInfo(order.getFromDeviceID(), order.getToDeviceID()));
+            basicOrders.add(new BasicOrderInfo(order.getFromDeviceID(), order.getToDeviceID()));
         }
-        return new HistoryOrders(total, index, limit, basicOrderInfos);
+        return new HistoryOrders(total, index, limit, basicOrders);
     }
 }

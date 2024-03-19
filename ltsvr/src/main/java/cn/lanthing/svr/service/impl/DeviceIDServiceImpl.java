@@ -35,15 +35,10 @@ import cn.lanthing.svr.dao.UnusedIDDao;
 import cn.lanthing.svr.dao.UsedIDDao;
 import cn.lanthing.svr.model.UnusedID;
 import cn.lanthing.svr.model.UsedID;
-import cn.lanthing.svr.model.UsedIDs;
 import cn.lanthing.svr.service.DeviceIDService;
-import cn.lanthing.utils.AutoLock;
-import cn.lanthing.utils.AutoReentrantLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import jakarta.annotation.PostConstruct;
 
 import java.util.UUID;
 
@@ -57,13 +52,13 @@ public class DeviceIDServiceImpl implements DeviceIDService {
     @Autowired
     private UsedIDDao usedIDDao;
 
-    private final AutoReentrantLock lock = new AutoReentrantLock();
+    // final AutoReentrantLock lock = new AutoReentrantLock();
 
     @Override
     public DeviceCookiePair allocateDeviceID() {
         long deviceID;
         String cookie = UUID.randomUUID().toString();
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
+        synchronized (this) {
             UnusedID unnUsedID = unusedIDDao.getNextDeviceID();
             if (unnUsedID == null) {
                 log.error("Get next unused device id failed");
@@ -78,25 +73,21 @@ public class DeviceIDServiceImpl implements DeviceIDService {
     }
 
     @Override
-    public UsedID getUsedDeviceID(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            return usedIDDao.queryByDeviceID(deviceID);
-        }
+    public synchronized UsedID getUsedDeviceID(long deviceID) {
+        return usedIDDao.queryByDeviceID(deviceID);
     }
 
     @Override
-    public void updateCookie(long deviceID, String cookie) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            usedIDDao.updateCookie(deviceID, cookie);
-        }
+    public synchronized void updateCookie(long deviceID, String cookie) {
+
+        usedIDDao.updateCookie(deviceID, cookie);
+
     }
 
     @Override
-    public DeviceIDStat getDeviceIDStat() {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var usedCount = usedIDDao.countID();
-            var unUsedCount = unusedIDDao.countID();
-            return new DeviceIDStat(usedCount, unUsedCount);
-        }
+    public synchronized DeviceIDStat getDeviceIDStat() {
+        var usedCount = usedIDDao.countID();
+        var unUsedCount = unusedIDDao.countID();
+        return new DeviceIDStat(usedCount, unUsedCount);
     }
 }

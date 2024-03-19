@@ -33,22 +33,13 @@ package cn.lanthing.svr.service;
 
 public interface ControllingDeviceService {
 
-    class Session {
-        public long connectionID;
-        public long deviceID;
-        public int version;
-        public Session(long conn, long dev, int ver) {
-            connectionID = conn;
-            deviceID = dev;
-            version = ver;
-        }
-    }
+    record Session(long connectionID, long deviceID, int version) {}
 
     void addSession(long connectionID);
 
     Long removeSession(long connectionID);
 
-    boolean loginDevice(long connectionID, long deviceID, int version);
+    boolean loginDevice(long connectionID, long deviceID, int version, String os);
 
     Session getSessionByConnectionID(long connectionID);
 

@@ -47,7 +47,6 @@ import cn.lanthing.svr.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 
 import java.util.Arrays;
 
@@ -114,7 +113,7 @@ public class ControlledController {
         }
 
         int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();
-        boolean success = controlledDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl(), versionNum);
+        boolean success = controlledDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl(), versionNum, msg.getOsType().toString());
         if (!success) {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus);
             log.info("LoginDevice failed({}:{})", connectionID, msg.getDeviceId());
@@ -128,13 +127,13 @@ public class ControlledController {
     @MessageMapping(proto = LtProto.OpenConnectionAck)
     public LtMessage handleOpenConnectionAck(long connectionID, OpenConnectionAckProto.OpenConnectionAck msg) {
         var session = controlledDeviceService.getSessionByConnectionID(connectionID);
-        if (session == null || session.deviceID == 0) {
+        if (session == null || session.deviceID() == 0) {
             log.error("Get device id by connection id failed!");
             return null;
         }
-        Order order = orderService.getOrderByControlledDeviceID(session.deviceID);
+        Order order = orderService.getOrderByControlledDeviceID(session.deviceID());
         if (order == null) {
-            log.error("Get order info by device id({}) failed", session.deviceID);
+            log.error("Get order info by device id({}) failed", session.deviceID());
             return null;
         }
         Long controllingConnectionID = controllingDeviceService.getConnectionIDByDeviceID(order.getFromDeviceID());
@@ -143,7 +142,7 @@ public class ControlledController {
             return null;
         }
         var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
-        ack.setDeviceId(session.deviceID);
+        ack.setDeviceId(session.deviceID());
         if (msg.getErrCode() != ErrorCodeOuterClass.ErrorCode.Success) {
             ack.setErrCode(msg.getErrCode())
                     .setRequestId(order.getClientRequestID());
@@ -177,11 +176,11 @@ public class ControlledController {
     @MessageMapping(proto = LtProto.CloseConnection)
     public LtMessage handleCloseConnection(long connectionID, CloseConnectionProto.CloseConnection msg) {
         var session = controlledDeviceService.getSessionByConnectionID(connectionID);
-        if (session == null || session.deviceID == 0) {
+        if (session == null || session.deviceID() == 0) {
             log.error("Get device id by connection id failed");
             return null;
         }
-        boolean success = orderService.closeOrderFromControlled(msg.getRoomId(), session.deviceID);
+        boolean success = orderService.closeOrderFromControlled(msg.getRoomId(), session.deviceID());
         if (success) {
             log.info("Order with room id({}) closed", msg.getRoomId());
         } else {
@@ -192,7 +191,7 @@ public class ControlledController {
 
     @MessageMapping(proto = LtProto.KeepAlive)
     public LtMessage handleKeepAlive(long connectionID, KeepAliveProto.KeepAlive msg) {
-        var ack  = KeepAliveAckProto.KeepAliveAck.newBuilder();
+        var ack = KeepAliveAckProto.KeepAliveAck.newBuilder();
         return new LtMessage(LtProto.KeepAliveAck.ID, ack.build());
     }
 }

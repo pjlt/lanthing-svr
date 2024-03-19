@@ -32,8 +32,6 @@
 package cn.lanthing.svr.service.impl;
 
 import cn.lanthing.svr.service.ControllingDeviceService;
-import cn.lanthing.utils.AutoLock;
-import cn.lanthing.utils.AutoReentrantLock;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -69,61 +67,53 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
 
     private final Map<Long, Long> deviceIDToConnIDMap = new HashMap<>();
 
-    private final AutoReentrantLock lock = new AutoReentrantLock();
-
     @Override
     public void addSession(long connectionID) {
         var session = new SessionInner(connectionID);
         session.status = Status.Connected;
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
+        synchronized (this) {
             connIDToSessionMap.putIfAbsent(connectionID, session);
         }
     }
 
     @Override
-    public Long removeSession(long connectionID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var session = connIDToSessionMap.remove(connectionID);
-            if (session != null) {
-                deviceIDToConnIDMap.remove(session.deviceID);
-                return session.deviceID;
-            } else {
-                return null;
-            }
+    public synchronized Long removeSession(long connectionID) {
+        var session = connIDToSessionMap.remove(connectionID);
+        if (session != null) {
+            deviceIDToConnIDMap.remove(session.deviceID);
+            return session.deviceID;
+        } else {
+            return null;
         }
     }
 
     @Override
-    public boolean loginDevice(long connectionID, long deviceID, int version) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var session = connIDToSessionMap.get(connectionID);
-            if (session == null) {
-                return false;
-            }
-            if (session.status != Status.Connected) {
-                //已有设备登录或已断开
-                return false;
-            }
-            session.deviceID = deviceID;
-            session.status = Status.DeviceLogged;
-            session.version = version;
-            deviceIDToConnIDMap.put(deviceID, connectionID);
-            return true;
+    public synchronized boolean loginDevice(long connectionID, long deviceID, int version, String os) {
+
+        var session = connIDToSessionMap.get(connectionID);
+        if (session == null) {
+            return false;
         }
+        if (session.status != Status.Connected) {
+            //已有设备登录或已断开
+            return false;
+        }
+        session.deviceID = deviceID;
+        session.status = Status.DeviceLogged;
+        session.version = version;
+        deviceIDToConnIDMap.put(deviceID, connectionID);
+        return true;
+
     }
 
     @Override
-    public Session getSessionByConnectionID(long connectionID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var session = connIDToSessionMap.get(connectionID);
-            return session == null ? null : new Session(session.connectionID, session.deviceID, session.version);
-        }
+    public synchronized Session getSessionByConnectionID(long connectionID) {
+        var session = connIDToSessionMap.get(connectionID);
+        return session == null ? null : new Session(session.connectionID, session.deviceID, session.version);
     }
 
     @Override
-    public Long getConnectionIDByDeviceID(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            return deviceIDToConnIDMap.get(deviceID);
-        }
+    public synchronized Long getConnectionIDByDeviceID(long deviceID) {
+        return deviceIDToConnIDMap.get(deviceID);
     }
 }
