@@ -91,7 +91,7 @@ public class ControllingController {
             log.info("Device(connectionID:{}, deviceID:{}) connection closed", connectionID, deviceID);
             orderService.controllingDeviceLogout(deviceID);
         } else {
-            log.info("Device(connectionID:{}) connection closed without deviceID", connectionID);
+            log.info("Device(connectionID:{}) connection closed failed", connectionID);
         }
     }
 
@@ -102,7 +102,7 @@ public class ControllingController {
             log.info("Device(connectionID:{}, deviceID:{}) connection unexpectedly closed", connectionID, deviceID);
             orderService.controllingDeviceLogout(deviceID);
         } else {
-            log.info("Device(connectionID:{}) connection unexpectedly closed without deviceID", connectionID);
+            log.info("Device(connectionID:{}) connection unexpectedly closed failed", connectionID);
         }
     }
 
@@ -125,6 +125,7 @@ public class ControllingController {
 
     @MessageMapping(proto = LtProto.LoginDevice)
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
+        //注意与ControlledController的区别
         log.info("Handle LoginDevice(connectionID:{}, deviceID:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
         UsedID usedID = deviceIDService.getUsedDeviceID(msg.getDeviceId());
