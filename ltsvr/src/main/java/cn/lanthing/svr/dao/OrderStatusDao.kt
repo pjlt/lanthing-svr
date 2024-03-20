@@ -71,16 +71,15 @@ class OrderStatusDao {
         }
     }
 
-    fun queryOrderByFromDeviceID(fromDeviceID: Int) : OrderStatus? {
+    fun queryOrderByFromDeviceID(fromDeviceID: Int) : List<OrderStatus> {
         return try {
             database
                 .from(OrderStatuses)
                 .select()
                 .where{ OrderStatuses.fromDeviceID eq fromDeviceID }
                 .map { row -> OrderStatuses.createEntity(row) }
-                .first()
         } catch (e: NoSuchElementException) {
-            null
+            ArrayList()
         }
     }
 }

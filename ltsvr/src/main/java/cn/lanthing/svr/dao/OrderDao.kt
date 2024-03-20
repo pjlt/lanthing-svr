@@ -89,7 +89,13 @@ class OrderDao {
     }
 
     fun markOrderFinishedWithReason(roomID: String, reason: String) : Boolean {
-
+        val count = database.update(Orders) {
+            set(it.finishReason, reason)
+            where {
+                (it.roomID eq roomID) and (it.finishReason.isNull())
+            }
+        }
+        return count != 0
     }
 
     fun countOrder() : Int {

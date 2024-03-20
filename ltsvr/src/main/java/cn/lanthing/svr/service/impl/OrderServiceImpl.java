@@ -36,6 +36,7 @@ import cn.lanthing.svr.config.SignalingConfig;
 import cn.lanthing.svr.dao.OrderDao;
 import cn.lanthing.svr.dao.OrderStatusDao;
 import cn.lanthing.svr.model.Order;
+import cn.lanthing.svr.model.OrderStatus;
 import cn.lanthing.svr.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -148,14 +149,16 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void controllingDeviceLogout(long deviceID) {
         final String reason = "controlling_logout";
-        var orderStatus = orderStatusDao.queryOrderByFromDeviceID((int)deviceID);
-        if (orderStatus == null) {
-            log.error("ControllingDeviceLogout: Query OrderStatus by fromDeviceID({}) failed", deviceID);
+        List<OrderStatus> statusList = orderStatusDao.queryOrderByFromDeviceID((int)deviceID);
+        if (statusList.isEmpty()) {
+            log.error("ControllingDeviceLogout: Query List<OrderStatus> by fromDeviceID({}) failed", deviceID);
             return;
         }
-        orderStatusDao.deleteOrder(orderStatus.getRoomID());
-        boolean success = orderDao.markOrderFinishedWithReason(orderStatus.getRoomID(), reason);
-        log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", orderStatus.getRoomID(), reason, success ? "success" : "failed");
+        for (var status : statusList) {
+            orderStatusDao.deleteOrder(status.getRoomID());
+            boolean success = orderDao.markOrderFinishedWithReason(status.getRoomID(), reason);
+            log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", status.getRoomID(), reason, success ? "success" : "failed");
+        }
     }
 
     @Override
