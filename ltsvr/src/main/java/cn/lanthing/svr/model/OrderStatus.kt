@@ -39,76 +39,48 @@ import org.ktorm.schema.varchar
 import java.time.LocalDateTime
 
 /*
-CREATE TABLE IF NOT EXISTS "orders" (
+CREATE TABLE IF NOT EXISTS "order_status" (
 	"id"				INTEGER NOT NULL UNIQUE,
 	"createdAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	"updatedAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"finishedAt"		DATETIME,
-	"finishReason"		VARCHAR(32),
+	"status"			VARCHAR(32) NOT NULL,
 	"fromDeviceID"		INTEGER NOT NULL,
-	"toDeviceID"		INTEGER NOT NULL,
-	"clientRequestID"	INTEGER NOT NULL,
-	"signalingHost"		VARCHAR(255) NOT NULL,
-	"signalingPort"		INTEGER NOT NULL,
+	"toDeviceID"		INTEGER NOT NULL UNIQUE,
 	"roomID"			VARCHAR(128) NOT NULL,
-	"serviceID"			VARCHAR(128) NOT NULL,
-	"clientID"			VARCHAR(128) NOT NULL,
-	"authToken"			VARCHAR(128) NOT NULL,
-	"p2pUser"			VARCHAR(16) NOT NULL,
-	"p2pToken"			VARCHAR(16) NOT NULL,
-	"relayServer"		VARCHAR(64) NOT NULL,
-	"reflexServers"		VARCHAR(1024) NOT NULL,
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
 
-CREATE TRIGGER IF NOT EXISTS UpdateOrderTimestamp
+CREATE TRIGGER IF NOT EXISTS UpdateOrderStatusTimestamp
 	AFTER UPDATE
-	ON orders
+	ON order_status
 BEGIN
 	UPDATE orders SET updatedAt = CURRENT_TIMESTAMP WHERE id=OLD.id;
 END;
 
+//表记录那么少，需要索引吗
+CREATE UNIQUE INDEX "idx_order_status_roomid" ON "order_status" ("roomID");
+CREATE INDEX "idx_order_status_fromid" ON "order_status" ("fromDeviceID");
+CREATE UNIQUE INDEX "idx_order_status_toid" ON "order_status" ("toDeviceID");
  */
 
-interface Order : Entity<Order> {
-    companion object : Entity.Factory<Order>()
+interface OrderStatus : Entity<OrderStatus> {
+    companion object : Entity.Factory<OrderStatus>()
     var id: Int
     var createdAt: LocalDateTime
     var updatedAt: LocalDateTime
-    var finishedAt: LocalDateTime
-    var finishReason: String
+    var status: String
     var fromDeviceID: Int
     var toDeviceID: Int
-    var clientRequestID: Int
-    var signalingHost: String
-    var signalingPort: Int
     var roomID: String
-    var serviceID: String
-    var clientID: String
-    var authToken: String
-    var p2pUser: String
-    var p2pToken: String
-    var relayServer: String
-    var reflexServers: String
 }
 
-object Orders : Table<Order>("orders") {
+
+object OrderStatuses : Table<OrderStatus>("order_status") {
     val id = int("id").primaryKey().bindTo { it.id }
     val createdAt = datetime("createdAt").bindTo { it.createdAt }
     val updatedAt = datetime("updatedAt").bindTo { it.updatedAt }
-    val finishedAt = datetime("finishedAt").bindTo { it.finishedAt }
-    val finishReason = varchar("finishReason").bindTo { it.finishReason }
+    val status = varchar("status").bindTo { it.status }
     val fromDeviceID = int("fromDeviceID").bindTo { it.fromDeviceID }
     val toDeviceID = int("toDeviceID").bindTo { it.toDeviceID }
-    val clientRequestID = int("clientRequestID").bindTo { it.clientRequestID }
-    val signalingHost = varchar("signalingHost").bindTo { it.signalingHost }
-    val signalingPort = int("signalingPort").bindTo { it.signalingPort }
     val roomID = varchar("roomID").bindTo { it.roomID }
-    val serviceID = varchar("serviceID").bindTo { it.serviceID }
-    val clientID = varchar("clientID").bindTo { it.clientID }
-    val authToken = varchar("authToken").bindTo { it.authToken }
-    val p2pUser = varchar("p2pUser").bindTo { it.p2pUser }
-    val p2pToken = varchar("p2pToken").bindTo { it.p2pToken }
-    val relayServer = varchar("relayServer").bindTo { it.relayServer }
-    val reflexServers = varchar("reflexServers").bindTo { it.reflexServers }
 }

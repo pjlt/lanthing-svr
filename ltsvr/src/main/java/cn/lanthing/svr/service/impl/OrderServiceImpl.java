@@ -34,6 +34,7 @@ package cn.lanthing.svr.service.impl;
 import cn.lanthing.svr.config.ReflexRelayConfig;
 import cn.lanthing.svr.config.SignalingConfig;
 import cn.lanthing.svr.dao.OrderDao;
+import cn.lanthing.svr.dao.OrderStatusDao;
 import cn.lanthing.svr.model.Order;
 import cn.lanthing.svr.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
@@ -57,19 +58,11 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private OrderDao orderDao;
 
-    // TODO: 将状态移到程序外
-    private final Set<Long> toDevices = new HashSet<>();
+    @Autowired
+    private OrderStatusDao orderStatusDao;
 
     @Override
     public OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID) {
-        boolean notBeingControlled = true;
-        synchronized (this) {
-            notBeingControlled = toDevices.add(toDeviceID);
-        }
-        if (!notBeingControlled) {
-            log.error("ToDevice({}) is being controlled, FromDevice({}) can not control it", toDeviceID, fromDeviceID);
-            return null;
-        }
         String relayServer = "";
         List<String> reflexServers = new ArrayList<>();
         if (!CollectionUtils.isEmpty(reflexRelayConfig.getRelays())) {
@@ -92,38 +85,77 @@ public class OrderServiceImpl implements OrderService {
                 RandomStringUtils.randomAlphanumeric(20),
                 relayServer,
                 reflexServers);
-        boolean success = orderDao.insertOrder(orderInfo);
-        if (success) {
-            return orderInfo;
-        } else {
-            log.error("Insert new order to db failed");
+        boolean success = orderStatusDao.insertOrder(orderInfo);
+        if (!success) {
+            log.error("Insert new OrderStatus(fromDeviceID:{}, toDeviceID:{}) failed, maybe there is another order with same toDeviceID", orderInfo.fromDeviceID(), orderInfo.toDeviceID());
             return null;
         }
+        success = orderDao.insertOrder(orderInfo);
+        if (!success) {
+            log.error("Insert new Order(fromDeviceID:{}, toDeviceID:{}) failed", orderInfo.fromDeviceID(), orderInfo.toDeviceID());
+            orderStatusDao.deleteOrder(orderInfo.roomID());
+            return null;
+        }
+        log.info("Insert new Order(fromDeviceID:{}, toDeviceID:{}, roomID:{}) success", orderInfo.fromDeviceID(), orderInfo.toDeviceID(), orderInfo.roomID());
+        return orderInfo;
     }
 
     @Override
     public Order getOrderByControlledDeviceID(long deviceID) {
-        return orderDao.queryOrderByToDeviceID((int) deviceID);
+        var orderStatus = orderStatusDao.queryOrderByToDeviceID((int) deviceID);
+        if (orderStatus == null) {
+            log.error("Query OrderStatus by toDeviceID({}) failed", deviceID);
+            return null;
+        }
+        var order = orderDao.queryOrderByRoomID(orderStatus.getRoomID());
+        if (order == null) {
+            log.error("Query Order by toDeviceID({}) -> roomID({}) -> Order failed", deviceID, orderStatus.getRoomID());
+        }
+        return order;
     }
 
     @Override
     public boolean closeOrderFromControlled(String roomID, long deviceID) {
-        return orderDao.finishByToDeviceClose(roomID, (int)deviceID);
+        final String reason = "controlled_close";
+        orderStatusDao.deleteOrder(roomID);
+        boolean success = orderDao.markOrderFinishedWithReason(roomID, reason);
+        log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", roomID, reason, success ? "success" : "failed");
+        return success;
     }
 
     @Override
     public boolean closeOrderFromControlling(String roomID, long deviceID) {
-        return orderDao.finishByFromDeviceClose(roomID, (int)deviceID);
+        final String reason = "controlling_close";
+        orderStatusDao.deleteOrder(roomID);
+        boolean success = orderDao.markOrderFinishedWithReason(roomID, reason);
+        log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", roomID, reason, success ? "success" : "failed");
+        return success;
     }
 
     @Override
     public void controlledDeviceLogout(long deviceID) {
-        orderDao.finishByToDeviceLogout((int)deviceID);
+        final String reason = "controlled_logout";
+        var orderStatus = orderStatusDao.queryOrderByToDeviceID((int)deviceID);
+        if (orderStatus == null) {
+            log.error("ControlledDeviceLogout: Query OrderStatus by toDeviceID({}) failed", deviceID);
+            return;
+        }
+        orderStatusDao.deleteOrder(orderStatus.getRoomID());
+        boolean success = orderDao.markOrderFinishedWithReason(orderStatus.getRoomID(), reason);
+        log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", orderStatus.getRoomID(), reason, success ? "success" : "failed");
     }
 
     @Override
     public void controllingDeviceLogout(long deviceID) {
-        orderDao.finishByFromDeviceLogout((int)deviceID);
+        final String reason = "controlling_logout";
+        var orderStatus = orderStatusDao.queryOrderByFromDeviceID((int)deviceID);
+        if (orderStatus == null) {
+            log.error("ControllingDeviceLogout: Query OrderStatus by fromDeviceID({}) failed", deviceID);
+            return;
+        }
+        orderStatusDao.deleteOrder(orderStatus.getRoomID());
+        boolean success = orderDao.markOrderFinishedWithReason(orderStatus.getRoomID(), reason);
+        log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", orderStatus.getRoomID(), reason, success ? "success" : "failed");
     }
 
     @Override

@@ -31,8 +31,8 @@
 
 package cn.lanthing.svr.dao
 
-import cn.lanthing.svr.model.Order
-import cn.lanthing.svr.model.Orders
+import cn.lanthing.svr.model.OrderStatus
+import cn.lanthing.svr.model.OrderStatuses
 import cn.lanthing.svr.service.OrderService.OrderInfo
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
@@ -40,67 +40,47 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
 @Component
-class OrderDao {
+class OrderStatusDao {
     @Autowired
     private lateinit var database: Database
 
-    fun queryOrderByRoomID(roomID: String) : Order? {
+    fun insertOrder(info: OrderInfo) : Boolean {
+        val count = database.insert(OrderStatuses) {
+            set(it.status, "NEW")
+            set(it.fromDeviceID, info.fromDeviceID.toInt())
+            set(it.toDeviceID, info.toDeviceID.toInt())
+            set(it.roomID, info.roomID)
+        }
+        return count != 0
+    }
+
+    fun deleteOrder(roomID: String) {
+        database.delete(OrderStatuses) { it.roomID eq roomID }
+    }
+
+    fun queryOrderByToDeviceID(toDeviceID: Int) : OrderStatus? {
         return try {
             database
-                .from(Orders)
+                .from(OrderStatuses)
                 .select()
-                .where { Orders.roomID eq roomID }
-                .limit(1)
-                .map { row -> Orders.createEntity(row) }
+                .where { OrderStatuses.toDeviceID eq toDeviceID }
+                .map { row -> OrderStatuses.createEntity(row) }
                 .first()
         } catch (e: NoSuchElementException) {
             null
         }
     }
 
-    fun queryHistoryOrders(index: Int, limit: Int) : List<Order> {
-        return database
-                .from(Orders)
+    fun queryOrderByFromDeviceID(fromDeviceID: Int) : OrderStatus? {
+        return try {
+            database
+                .from(OrderStatuses)
                 .select()
-                .orderBy(Orders.id.asc())
-                .limit(limit)
-                .offset(index)
-                .map { row -> Orders.createEntity(row) }
-    }
-
-    fun insertOrder(info: OrderInfo) : Boolean {
-        val reflexServers = info.reflexServers.joinToString(",")
-        val count = database.insert(Orders) {
-            set(it.fromDeviceID, info.fromDeviceID.toInt())
-            set(it.toDeviceID, info.toDeviceID.toInt())
-            set(it.clientRequestID, info.clientRequestID.toInt())
-            set(it.signalingHost, info.signalingAddress)
-            set(it.signalingPort, info.signalingPort)
-            set(it.roomID, info.roomID)
-            set(it.serviceID, info.serviceID)
-            set(it.clientID, info.clientID)
-            set(it.authToken, info.authToken)
-            set(it.p2pUser, info.p2pUsername)
-            set(it.p2pToken, info.p2pPassword)
-            set(it.relayServer, info.relayServer)
-            set(it.reflexServers, reflexServers)
-        }
-        return count != 0
-    }
-
-    fun markOrderFinishedWithReason(roomID: String, reason: String) : Boolean {
-
-    }
-
-    fun countOrder() : Int {
-        val result = database
-            .from(Orders)
-            .select(count())
-            .map { it.getInt(0) }
-        return if (result.isEmpty()) {
-            0
-        } else {
-            result[0]
+                .where{ OrderStatuses.fromDeviceID eq fromDeviceID }
+                .map { row -> OrderStatuses.createEntity(row) }
+                .first()
+        } catch (e: NoSuchElementException) {
+            null
         }
     }
 }
