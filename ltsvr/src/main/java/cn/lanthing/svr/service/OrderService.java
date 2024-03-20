@@ -33,19 +33,41 @@ package cn.lanthing.svr.service;
 
 import cn.lanthing.svr.model.Order;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public interface OrderService {
 
     record BasicOrderInfo(
+            int id,
+            LocalDateTime start,
+            LocalDateTime finish,
+            String duration,
+            String finishReason,
             long fromDeviceID,
             long toDeviceID
     ) {
-        static BasicOrderInfo createFrom(OrderInfo orderInfo) {
+        public static BasicOrderInfo createFrom(Order order) {
+            var finishAt = order.getFinishedAt();
+            if (finishAt == null) {
+                finishAt = LocalDateTime.now();
+            }
+            var duration = Duration.between(order.getCreatedAt(), finishAt);
             return new BasicOrderInfo(
-                    orderInfo.fromDeviceID(),
-                    orderInfo.toDeviceID()
+                    order.getId(),
+                    order.getCreatedAt(),
+                    order.getFinishedAt(),
+                    String.format("%d:%02d:%02d", duration.toHoursPart(), duration.toMillisPart(), duration.toSecondsPart()),
+                    order.getFinishReason(),
+                    order.getFromDeviceID(),
+                    order.getToDeviceID()
             );
+        }
+        void f() {
+            var d = Duration.between(start, finish);
+
         }
     }
 

@@ -33,6 +33,7 @@ package cn.lanthing.svr.dao
 
 import cn.lanthing.svr.model.UnusedID
 import cn.lanthing.svr.model.UnusedIDs
+import jakarta.annotation.PostConstruct
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -43,6 +44,21 @@ class UnusedIDDao {
 
     @Autowired
     lateinit var database: Database
+
+    @PostConstruct
+    fun init() {
+        val c = database.useConnection { conn ->
+            conn.prepareStatement("""
+                CREATE TABLE IF NOT EXISTS "unused_device_ids" (
+                	"id"			INTEGER NOT NULL UNIQUE,
+                	"createdAt"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"deviceID"		INTEGER NOT NULL UNIQUE,
+                	PRIMARY KEY("id" AUTOINCREMENT)
+                );
+            """.trimIndent())
+        }
+        c.execute()
+    }
 
     fun getNextDeviceID(): UnusedID? {
         return try {

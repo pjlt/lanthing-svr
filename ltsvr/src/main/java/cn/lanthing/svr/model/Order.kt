@@ -38,45 +38,13 @@ import org.ktorm.schema.int
 import org.ktorm.schema.varchar
 import java.time.LocalDateTime
 
-/*
-CREATE TABLE IF NOT EXISTS "orders" (
-	"id"				INTEGER NOT NULL UNIQUE,
-	"createdAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"updatedAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"finishedAt"		DATETIME,
-	"finishReason"		VARCHAR(32),
-	"fromDeviceID"		INTEGER NOT NULL,
-	"toDeviceID"		INTEGER NOT NULL,
-	"clientRequestID"	INTEGER NOT NULL,
-	"signalingHost"		VARCHAR(255) NOT NULL,
-	"signalingPort"		INTEGER NOT NULL,
-	"roomID"			VARCHAR(128) NOT NULL,
-	"serviceID"			VARCHAR(128) NOT NULL,
-	"clientID"			VARCHAR(128) NOT NULL,
-	"authToken"			VARCHAR(128) NOT NULL,
-	"p2pUser"			VARCHAR(16) NOT NULL,
-	"p2pToken"			VARCHAR(16) NOT NULL,
-	"relayServer"		VARCHAR(64) NOT NULL,
-	"reflexServers"		VARCHAR(1024) NOT NULL,
-	PRIMARY KEY("id" AUTOINCREMENT)
-);
-
-CREATE TRIGGER IF NOT EXISTS UpdateOrderTimestamp
-	AFTER UPDATE
-	ON orders
-BEGIN
-	UPDATE orders SET updatedAt = CURRENT_TIMESTAMP WHERE id=OLD.id;
-END;
-
- */
-
 interface Order : Entity<Order> {
     companion object : Entity.Factory<Order>()
     var id: Int
     var createdAt: LocalDateTime
     var updatedAt: LocalDateTime
-    var finishedAt: LocalDateTime
-    var finishReason: String
+    var finishedAt: LocalDateTime?
+    var finishReason: String?
     var fromDeviceID: Int
     var toDeviceID: Int
     var clientRequestID: Int

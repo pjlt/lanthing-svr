@@ -127,4 +127,9 @@ public class ControlledSessionServiceImpl implements ControlledSessionService {
         var session = connIDToSessionMap.get(connectionID);
         return session == null ? null : new Session(session.connectionID, session.deviceID, session.version, session.os);
     }
+
+    @Override
+    public synchronized int getSessionCount() {
+        return connIDToSessionMap.size();
+    }
 }

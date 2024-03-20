@@ -44,4 +44,6 @@ public interface ControlledSessionService {
     Session getSessionByDeviceID(long deviceID);
 
     Session getSessionByConnectionID(long connectionID);
+
+    int getSessionCount();
 }

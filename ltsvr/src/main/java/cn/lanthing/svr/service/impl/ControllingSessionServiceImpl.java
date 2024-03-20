@@ -116,4 +116,9 @@ public class ControllingSessionServiceImpl implements ControllingSessionService 
     public synchronized Long getConnectionIDByDeviceID(long deviceID) {
         return deviceIDToConnIDMap.get(deviceID);
     }
+
+    @Override
+    public synchronized int getSessionCount() {
+        return connIDToSessionMap.size();
+    }
 }

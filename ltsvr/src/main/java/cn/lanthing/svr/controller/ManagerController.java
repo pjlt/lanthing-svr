@@ -31,6 +31,8 @@
 
 package cn.lanthing.svr.controller;
 
+import cn.lanthing.svr.service.ControlledSessionService;
+import cn.lanthing.svr.service.ControllingSessionService;
 import cn.lanthing.svr.service.DeviceIDService;
 import cn.lanthing.svr.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,26 +44,42 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ManagerController {
 
+    public record JsonResult<T>(
+            int code,
+            String msg,
+            T data
+    ) {}
+
+    public record OnlineDevices(int controlling, int controlled, int total) {}
+
+    public record Devices(int used, int unused, int total, OnlineDevices online){}
+
     @Autowired
     private DeviceIDService deviceIDService;
 
     @Autowired
     private OrderService orderService;
 
-    @GetMapping("/mgr/devices")
-    public DeviceIDService.DeviceIDStat devices() {
-        return deviceIDService.getDeviceIDStat();
-    }
+    @Autowired
+    private ControlledSessionService controlledSessionService;
 
-    @GetMapping("/mgr/devices/online")
-    public int devicesOnline() {
-        return 0;
+    @Autowired
+    private ControllingSessionService controllingSessionService;
+
+    @GetMapping("/mgr/devices")
+    public JsonResult<Devices> devices() {
+        var stat = deviceIDService.getDeviceIDStat();
+        var controlledCount = controlledSessionService.getSessionCount();
+        var controllingCount = controllingSessionService.getSessionCount();
+        return new JsonResult<>(
+                0, "ok", new Devices(stat.usedCount(), stat.unUsedCount(), stat.usedCount() + stat.unUsedCount(),
+                        new OnlineDevices(controllingCount, controlledCount, controlledCount + controllingCount)));
     }
 
     @GetMapping("/mgr/orders")
-    public OrderService.HistoryOrders orders(@RequestParam("index") int index , @RequestParam("limit") int limit) {
+    public JsonResult<OrderService.HistoryOrders> orders(@RequestParam("index") int index , @RequestParam("limit") int limit) {
         final int kMaxOrdersPerQuery = 50;
         limit = Math.min(limit, kMaxOrdersPerQuery);
-        return orderService.getHistoryOrders(index, limit);
+        return new JsonResult<>(0, "ok", orderService.getHistoryOrders(index, limit));
     }
 }

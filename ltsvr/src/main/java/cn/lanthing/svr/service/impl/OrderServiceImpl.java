@@ -33,10 +33,10 @@ package cn.lanthing.svr.service.impl;
 
 import cn.lanthing.svr.config.ReflexRelayConfig;
 import cn.lanthing.svr.config.SignalingConfig;
+import cn.lanthing.svr.dao.CurrentOrderDao;
 import cn.lanthing.svr.dao.OrderDao;
-import cn.lanthing.svr.dao.OrderStatusDao;
+import cn.lanthing.svr.model.CurrentOrder;
 import cn.lanthing.svr.model.Order;
-import cn.lanthing.svr.model.OrderStatus;
 import cn.lanthing.svr.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -60,7 +60,7 @@ public class OrderServiceImpl implements OrderService {
     private OrderDao orderDao;
 
     @Autowired
-    private OrderStatusDao orderStatusDao;
+    private CurrentOrderDao currentOrderDao;
 
     @Override
     public OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID) {
@@ -86,7 +86,7 @@ public class OrderServiceImpl implements OrderService {
                 RandomStringUtils.randomAlphanumeric(20),
                 relayServer,
                 reflexServers);
-        boolean success = orderStatusDao.insertOrder(orderInfo);
+        boolean success = currentOrderDao.insertOrder(orderInfo);
         if (!success) {
             log.error("Insert new OrderStatus(fromDeviceID:{}, toDeviceID:{}) failed, maybe there is another order with same toDeviceID", orderInfo.fromDeviceID(), orderInfo.toDeviceID());
             return null;
@@ -94,7 +94,7 @@ public class OrderServiceImpl implements OrderService {
         success = orderDao.insertOrder(orderInfo);
         if (!success) {
             log.error("Insert new Order(fromDeviceID:{}, toDeviceID:{}) failed", orderInfo.fromDeviceID(), orderInfo.toDeviceID());
-            orderStatusDao.deleteOrder(orderInfo.roomID());
+            currentOrderDao.deleteOrder(orderInfo.roomID());
             return null;
         }
         log.info("Insert new Order(fromDeviceID:{}, toDeviceID:{}, roomID:{}) success", orderInfo.fromDeviceID(), orderInfo.toDeviceID(), orderInfo.roomID());
@@ -103,7 +103,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order getOrderByControlledDeviceID(long deviceID) {
-        var orderStatus = orderStatusDao.queryOrderByToDeviceID((int) deviceID);
+        var orderStatus = currentOrderDao.queryOrderByToDeviceID((int) deviceID);
         if (orderStatus == null) {
             log.error("Query OrderStatus by toDeviceID({}) failed", deviceID);
             return null;
@@ -118,7 +118,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public boolean closeOrderFromControlled(String roomID, long deviceID) {
         final String reason = "controlled_close";
-        orderStatusDao.deleteOrder(roomID);
+        currentOrderDao.deleteOrder(roomID);
         boolean success = orderDao.markOrderFinishedWithReason(roomID, reason);
         log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", roomID, reason, success ? "success" : "failed");
         return success;
@@ -127,7 +127,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public boolean closeOrderFromControlling(String roomID, long deviceID) {
         final String reason = "controlling_close";
-        orderStatusDao.deleteOrder(roomID);
+        currentOrderDao.deleteOrder(roomID);
         boolean success = orderDao.markOrderFinishedWithReason(roomID, reason);
         log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", roomID, reason, success ? "success" : "failed");
         return success;
@@ -136,12 +136,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void controlledDeviceLogout(long deviceID) {
         final String reason = "controlled_logout";
-        var orderStatus = orderStatusDao.queryOrderByToDeviceID((int)deviceID);
+        var orderStatus = currentOrderDao.queryOrderByToDeviceID((int)deviceID);
         if (orderStatus == null) {
             log.error("ControlledDeviceLogout: Query OrderStatus by toDeviceID({}) failed", deviceID);
             return;
         }
-        orderStatusDao.deleteOrder(orderStatus.getRoomID());
+        currentOrderDao.deleteOrder(orderStatus.getRoomID());
         boolean success = orderDao.markOrderFinishedWithReason(orderStatus.getRoomID(), reason);
         log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", orderStatus.getRoomID(), reason, success ? "success" : "failed");
     }
@@ -149,13 +149,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void controllingDeviceLogout(long deviceID) {
         final String reason = "controlling_logout";
-        List<OrderStatus> statusList = orderStatusDao.queryOrderByFromDeviceID((int)deviceID);
+        List<CurrentOrder> statusList = currentOrderDao.queryOrderByFromDeviceID((int)deviceID);
         if (statusList.isEmpty()) {
             log.error("ControllingDeviceLogout: Query List<OrderStatus> by fromDeviceID({}) failed", deviceID);
             return;
         }
         for (var status : statusList) {
-            orderStatusDao.deleteOrder(status.getRoomID());
+            currentOrderDao.deleteOrder(status.getRoomID());
             boolean success = orderDao.markOrderFinishedWithReason(status.getRoomID(), reason);
             log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", status.getRoomID(), reason, success ? "success" : "failed");
         }
@@ -167,7 +167,7 @@ public class OrderServiceImpl implements OrderService {
         var total = orderDao.countOrder();
         List<BasicOrderInfo> basicOrders = new ArrayList<>();
         for (var order : orders) {
-            basicOrders.add(new BasicOrderInfo(order.getFromDeviceID(), order.getToDeviceID()));
+            basicOrders.add(BasicOrderInfo.createFrom(order));
         }
         return new HistoryOrders(total, index, limit, basicOrders);
     }

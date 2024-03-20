@@ -31,22 +31,39 @@
 
 package cn.lanthing.svr.dao
 
-import cn.lanthing.svr.model.OrderStatus
-import cn.lanthing.svr.model.OrderStatuses
+import cn.lanthing.svr.model.CurrentOrder
+import cn.lanthing.svr.model.CurrentOrders
 import cn.lanthing.svr.service.OrderService.OrderInfo
+import jakarta.annotation.PostConstruct
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
 @Component
-class OrderStatusDao {
+class CurrentOrderDao {
     @Autowired
     private lateinit var database: Database
 
+    @PostConstruct
+    fun init() {
+        val c = database.useConnection { conn ->
+            conn.prepareStatement("""
+                CREATE TABLE IF NOT EXISTS "current_orders" (
+                	"id"				INTEGER NOT NULL UNIQUE,
+                	"createdAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"fromDeviceID"		INTEGER NOT NULL,
+                	"toDeviceID"		INTEGER NOT NULL UNIQUE,
+                	"roomID"			VARCHAR(128) NOT NULL UNIQUE,
+                	PRIMARY KEY("id" AUTOINCREMENT)
+                );
+            """.trimIndent())
+        }
+        c.execute()
+    }
+
     fun insertOrder(info: OrderInfo) : Boolean {
-        val count = database.insert(OrderStatuses) {
-            set(it.status, "NEW")
+        val count = database.insert(CurrentOrders) {
             set(it.fromDeviceID, info.fromDeviceID.toInt())
             set(it.toDeviceID, info.toDeviceID.toInt())
             set(it.roomID, info.roomID)
@@ -55,29 +72,29 @@ class OrderStatusDao {
     }
 
     fun deleteOrder(roomID: String) {
-        database.delete(OrderStatuses) { it.roomID eq roomID }
+        database.delete(CurrentOrders) { it.roomID eq roomID }
     }
 
-    fun queryOrderByToDeviceID(toDeviceID: Int) : OrderStatus? {
+    fun queryOrderByToDeviceID(toDeviceID: Int) : CurrentOrder? {
         return try {
             database
-                .from(OrderStatuses)
+                .from(CurrentOrders)
                 .select()
-                .where { OrderStatuses.toDeviceID eq toDeviceID }
-                .map { row -> OrderStatuses.createEntity(row) }
+                .where { CurrentOrders.toDeviceID eq toDeviceID }
+                .map { row -> CurrentOrders.createEntity(row) }
                 .first()
         } catch (e: NoSuchElementException) {
             null
         }
     }
 
-    fun queryOrderByFromDeviceID(fromDeviceID: Int) : List<OrderStatus> {
+    fun queryOrderByFromDeviceID(fromDeviceID: Int) : List<CurrentOrder> {
         return try {
             database
-                .from(OrderStatuses)
+                .from(CurrentOrders)
                 .select()
-                .where{ OrderStatuses.fromDeviceID eq fromDeviceID }
-                .map { row -> OrderStatuses.createEntity(row) }
+                .where{ CurrentOrders.fromDeviceID eq fromDeviceID }
+                .map { row -> CurrentOrders.createEntity(row) }
         } catch (e: NoSuchElementException) {
             ArrayList()
         }

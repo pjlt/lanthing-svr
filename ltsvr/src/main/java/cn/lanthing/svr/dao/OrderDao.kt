@@ -34,6 +34,7 @@ package cn.lanthing.svr.dao
 import cn.lanthing.svr.model.Order
 import cn.lanthing.svr.model.Orders
 import cn.lanthing.svr.service.OrderService.OrderInfo
+import jakarta.annotation.PostConstruct
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -43,6 +44,45 @@ import org.springframework.stereotype.Component
 class OrderDao {
     @Autowired
     private lateinit var database: Database
+
+    @PostConstruct
+    fun init() {
+        val c = database.useConnection { conn ->
+            conn.prepareStatement("""
+                CREATE TABLE IF NOT EXISTS "orders" (
+                	"id"				INTEGER NOT NULL UNIQUE,
+                	"createdAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"updatedAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"finishedAt"		DATETIME,
+                	"finishReason"		VARCHAR(32),
+                	"fromDeviceID"		INTEGER NOT NULL,
+                	"toDeviceID"		INTEGER NOT NULL,
+                	"clientRequestID"	INTEGER NOT NULL,
+                	"signalingHost"		VARCHAR(255) NOT NULL,
+                	"signalingPort"		INTEGER NOT NULL,
+                	"roomID"			VARCHAR(128) NOT NULL,
+                	"serviceID"			VARCHAR(128) NOT NULL,
+                	"clientID"			VARCHAR(128) NOT NULL,
+                	"authToken"			VARCHAR(128) NOT NULL,
+                	"p2pUser"			VARCHAR(16) NOT NULL,
+                	"p2pToken"			VARCHAR(16) NOT NULL,
+                	"relayServer"		VARCHAR(64) NOT NULL,
+                	"reflexServers"		VARCHAR(1024) NOT NULL,
+                	PRIMARY KEY("id" AUTOINCREMENT)
+                );
+
+                CREATE TRIGGER IF NOT EXISTS UpdateOrderTimestamp
+                	AFTER UPDATE
+                	ON orders
+                BEGIN
+                	UPDATE orders SET updatedAt = CURRENT_TIMESTAMP WHERE id=OLD.id;
+                END;
+                
+                CREATE UNIQUE INDEX IF NOT EXISTS "idx_orders_roomid" ON "orders" ("roomID");
+            """.trimIndent())
+        }
+        c.execute()
+    }
 
     fun queryOrderByRoomID(roomID: String) : Order? {
         return try {

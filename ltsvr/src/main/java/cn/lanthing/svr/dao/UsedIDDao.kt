@@ -33,6 +33,7 @@ package cn.lanthing.svr.dao
 
 import cn.lanthing.svr.model.UsedID
 import cn.lanthing.svr.model.UsedIDs
+import jakarta.annotation.PostConstruct
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -43,6 +44,29 @@ class UsedIDDao {
 
     @Autowired
     lateinit var database: Database
+
+    @PostConstruct
+    fun init() {
+        val c = database.useConnection { conn ->
+            conn.prepareStatement("""
+                CREATE TABLE IF NOT EXISTS used_device_ids2 (
+                	"id"	        INTEGER NOT NULL UNIQUE,
+                	"createdAt"	    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"updatedAt"	    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"deviceID"      INTEGER,
+                	"cookie"        TEXT,
+                	PRIMARY KEY("id" AUTOINCREMENT)
+                );
+                CREATE TRIGGER IF NOT EXISTS UpdateTimestamp
+                	AFTER UPDATE
+                	ON used_device_ids2
+                BEGIN
+                	UPDATE used_device_ids2 SET updatedAt = CURRENT_TIMESTAMP WHERE id=OLD.id;
+                END;
+            """.trimIndent())
+        }
+        c.execute()
+    }
 
     fun queryByDeviceID(deviceID: Long): UsedID? {
         return try {
