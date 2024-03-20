@@ -59,11 +59,33 @@ class OrderDao {
     }
 
     fun queryHistoryOrders(index: Int, limit: Int) : List<Order> {
-        return ArrayList()
+        return database
+                .from(Orders)
+                .select()
+                .orderBy(Orders.id.asc())
+                .limit(limit)
+                .offset(index)
+                .map { row -> Orders.createEntity(row) }
     }
 
-    fun insertOrder(orderInfo: OrderInfo) : Boolean {
-        return false
+    fun insertOrder(info: OrderInfo) : Boolean {
+        val reflexServers = info.reflexServers.joinToString(",")
+        val count = database.insert(Orders) {
+            set(it.fromDeviceID, info.fromDeviceID.toInt())
+            set(it.toDeviceID, info.toDeviceID.toInt())
+            set(it.clientRequestID, info.clientRequestID.toInt())
+            set(it.signalingHost, info.signalingAddress)
+            set(it.signalingPort, info.signalingPort)
+            set(it.roomID, info.roomID)
+            set(it.serviceID, info.serviceID)
+            set(it.clientID, info.clientID)
+            set(it.authToken, info.authToken)
+            set(it.p2pUser, info.p2pUsername)
+            set(it.p2pToken, info.p2pPassword)
+            set(it.relayServer, info.relayServer)
+            set(it.reflexServers, reflexServers)
+        }
+        return count != 0
     }
 
     fun finishByFromDeviceLogout(fromDeviceID: Int) {

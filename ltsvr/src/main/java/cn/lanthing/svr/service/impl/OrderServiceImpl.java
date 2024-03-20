@@ -36,6 +36,7 @@ import cn.lanthing.svr.config.SignalingConfig;
 import cn.lanthing.svr.dao.OrderDao;
 import cn.lanthing.svr.model.Order;
 import cn.lanthing.svr.service.OrderService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 
+@Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -55,8 +57,19 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private OrderDao orderDao;
 
+    // TODO: 将状态移到程序外
+    private final Set<Long> toDevices = new HashSet<>();
+
     @Override
     public OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID) {
+        boolean notBeingControlled = true;
+        synchronized (this) {
+            notBeingControlled = toDevices.add(toDeviceID);
+        }
+        if (!notBeingControlled) {
+            log.error("ToDevice({}) is being controlled, FromDevice({}) can not control it", toDeviceID, fromDeviceID);
+            return null;
+        }
         String relayServer = "";
         List<String> reflexServers = new ArrayList<>();
         if (!CollectionUtils.isEmpty(reflexRelayConfig.getRelays())) {
@@ -76,13 +89,14 @@ public class OrderServiceImpl implements OrderService {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
                 RandomStringUtils.randomAlphanumeric(6),
-                RandomStringUtils.randomAlphanumeric(8),
+                RandomStringUtils.randomAlphanumeric(20),
                 relayServer,
                 reflexServers);
         boolean success = orderDao.insertOrder(orderInfo);
         if (success) {
             return orderInfo;
         } else {
+            log.error("Insert new order to db failed");
             return null;
         }
     }

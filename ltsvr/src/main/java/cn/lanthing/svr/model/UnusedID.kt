@@ -33,19 +33,15 @@ package cn.lanthing.svr.model
 
 import org.ktorm.entity.Entity
 import org.ktorm.schema.Table
-import org.ktorm.schema.datetime
 import org.ktorm.schema.int
-import java.time.LocalDateTime
 
 interface UnusedID : Entity<UnusedID> {
     companion object : Entity.Factory<UnusedID>()
     var id: Int
-    var createdAt: LocalDateTime
     var deviceID: Int
 }
 
 object UnusedIDs : Table<UnusedID>("unused_device_ids") {
     val id = int("id").primaryKey().bindTo { it.id }
-    val createdAt = datetime("createdAt").bindTo { it.createdAt }
     val deviceID = int("deviceID").bindTo { it.deviceID }
 }

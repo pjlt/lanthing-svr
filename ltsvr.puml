@@ -1,0 +1,520 @@
+@startuml
+class cn.lanthing.svr.sockets.Server {
+- SocketConfig controlledSocketConfig
+- SocketConfig controllingSocketConfig
+- NonSslChannelInitializer controllingNonSslChannelInitializer
+- SslChannelInitializer controllingSslChannelInitializer
+- NonSslChannelInitializer controlledNonSslChannelInitializer
+- SslChannelInitializer controlledSslChannelInitializer
+- SocketServer controlledSocketServer
+- SocketServer controllingSocketServer
++ void init()
++ void uninit()
+}
+
+
+interface cn.lanthing.svr.service.ControllingSocketService {
+~ void send(long,LtMessage)
+}
+
+class cn.lanthing.svr.service.impl.ControlledSessionServiceImpl {
+- Map<Long,SessionInner> connIDToSessionMap
+- Map<Long,Long> deviceIDToConnIDMap
++ void addSession(long)
++ Long removeSession(long)
++ boolean loginDevice(long,long,boolean,int,String)
++ Session getSessionByDeviceID(long)
++ Session getSessionByConnectionID(long)
+}
+
+
+enum cn.lanthing.svr.service.impl.Status {
++  Connected
++  DeviceLogged
++  Disconnected
+}
+
+class cn.lanthing.svr.service.impl.ControlledSessionServiceImpl$SessionInner {
+- long connectionID
+- long deviceID
+- boolean allowControl
+- Status status
+- int version
+- String os
+}
+
+class cn.lanthing.svr.service.impl.OrderServiceImpl {
+- SignalingConfig signalingConfig
+- ReflexRelayConfig reflexRelayConfig
+- OrderDao orderDao
+- Set<Long> toDevices
++ OrderInfo newOrder(long,long,long)
++ Order getOrderByControlledDeviceID(long)
++ boolean closeOrderFromControlled(String,long)
++ boolean closeOrderFromControlling(String,long)
++ void controlledDeviceLogout(long)
++ void controllingDeviceLogout(long)
++ HistoryOrders getHistoryOrders(int,int)
+}
+
+
+class Order$Companion {
+}
+interface Order {
++ Int id
++ LocalDateTime createdAt
++ LocalDateTime updatedAt
++ LocalDateTime finishedAt
++ String finishReason
++ Int fromDeviceID
++ Int toDeviceID
++ Int clientRequestID
++ String signalingHost
++ Int signalingPort
++ String roomID
++ String serviceID
++ String clientID
++ String authToken
++ String p2pUser
++ String p2pToken
++ String relayServer
++ String reflexServers
+}
+
+class Orders {
++  id
++  createdAt
++  updatedAt
++  finishedAt
++  finishReason
++  fromDeviceID
++  toDeviceID
++  clientRequestID
++  signalingHost
++  signalingPort
++  roomID
++  serviceID
++  clientID
++  authToken
++  p2pUser
++  p2pToken
++  relayServer
++  reflexServers
+}
+
+class cn.lanthing.svr.SvrApplication {
++ {static} void main(String[])
+}
+
+interface cn.lanthing.svr.service.ControlledSocketService {
+~ void send(long,LtMessage)
+}
+
+interface cn.lanthing.svr.service.ControllingSessionService {
+~ void addSession(long)
+~ Long removeSession(long)
+~ boolean loginDevice(long,long,int,String)
+~ Session getSessionByConnectionID(long)
+~ Long getConnectionIDByDeviceID(long)
+}
+
+class cn.lanthing.svr.service.ControllingSessionService$Session {
+- long connectionID
+- long deviceID
+- int version
++ long connectionID()
++ int version()
++ long deviceID()
+}
+
+
+class OrderDao {
+- Database database
++ Order? queryOrderByToDeviceID(Int)
++ List<Order> queryHistoryOrders(Int,Int)
++ Boolean insertOrder(OrderInfo)
++ void finishByFromDeviceLogout(Int)
++ void finishByToDeviceLogout(Int)
++ Boolean finishByFromDeviceClose(String,Int)
++ Boolean finishByToDeviceClose(String,Int)
++ Int countOrder()
+}
+
+
+class cn.lanthing.svr.controller.ManagerController {
+- DeviceIDService deviceIDService
+- OrderService orderService
++ DeviceIDService.DeviceIDStat devices()
++ int devicesOnline()
++ OrderService.HistoryOrders orders(int,int)
+}
+
+
+class cn.lanthing.svr.config.SignalingConfig {
+- String IP
+- int port
+}
+
+class cn.lanthing.svr.sockets.Dispatcher {
+- ApplicationContext applicationContext
++ MessageDispatcher controllingDispatcher()
++ MessageDispatcher controlledDispatcher()
+}
+
+
+class cn.lanthing.svr.config.SocketServerConfig {
++ SocketConfig controlledSocketConfig()
++ SocketConfig controllingSocketConfig()
+}
+
+class cn.lanthing.svr.sockets.ChannelInitializer {
+- MessageDispatcher controllingDispatcher
+- MessageDispatcher controlledDispatcher
+- SocketConfig controlledSocketConfig
+- SocketConfig controllingSocketConfig
++ NonSslChannelInitializer controllingNonSslChannelInitializer()
++ SslChannelInitializer controllingSslChannelInitializer()
++ NonSslChannelInitializer controlledNonSslChannelInitializer()
++ SslChannelInitializer controlledSslChannelInitializer()
+}
+
+
+class UsedID$Companion {
+}
+interface UsedID {
++ Int id
++ LocalDateTime createdAt
++ LocalDateTime updatedAt
++ Int deviceID
++ String cookie
+}
+
+class UsedIDs {
++  id
++  createdAt
++  updatedAt
++  deviceID
++  cookie
+}
+
+class JdbcConfig {
+}
+class KtormConfig {
++ JdbcConfig jdbcConfig()
++ Database database()
++ Module ktormModule()
+}
+
+interface cn.lanthing.svr.service.OrderService {
+~ OrderInfo newOrder(long,long,long)
+~ Order getOrderByControlledDeviceID(long)
+~ boolean closeOrderFromControlled(String,long)
+~ boolean closeOrderFromControlling(String,long)
+~ void controllingDeviceLogout(long)
+~ void controlledDeviceLogout(long)
+~ HistoryOrders getHistoryOrders(int,int)
+}
+
+class cn.lanthing.svr.service.OrderService$BasicOrderInfo {
+- long fromDeviceID
+- long toDeviceID
+~ {static} BasicOrderInfo createFrom(OrderInfo)
++ long toDeviceID()
++ long fromDeviceID()
+}
+
+
+class cn.lanthing.svr.service.OrderService$OrderInfo {
+- long fromDeviceID
+- long toDeviceID
+- long clientRequestID
+- String signalingAddress
+- int signalingPort
+- String roomID
+- String serviceID
+- String clientID
+- String authToken
+- String p2pUsername
+- String p2pPassword
+- String relayServer
+- List<String> reflexServers
++ String authToken()
++ List<String> reflexServers()
++ String roomID()
++ String p2pUsername()
++ String p2pPassword()
++ String signalingAddress()
++ String serviceID()
++ String clientID()
++ String relayServer()
++ long clientRequestID()
++ long toDeviceID()
++ long fromDeviceID()
++ int signalingPort()
+}
+
+
+class cn.lanthing.svr.service.OrderService$HistoryOrders {
+- int total
+- int index
+- int limit
+- List<BasicOrderInfo> orders
++ int total()
++ List<BasicOrderInfo> orders()
++ int index()
++ int limit()
+}
+
+
+class cn.lanthing.svr.service.impl.DeviceIDServiceImpl {
+- UnusedIDDao unusedIDDao
+- UsedIDDao usedIDDao
++ DeviceCookiePair allocateDeviceID()
++ UsedID getUsedDeviceID(long)
++ void updateCookie(long,String)
++ DeviceIDStat getDeviceIDStat()
+}
+
+
+class cn.lanthing.svr.service.impl.ControllingSessionServiceImpl {
+- Map<Long,SessionInner> connIDToSessionMap
+- Map<Long,Long> deviceIDToConnIDMap
++ void addSession(long)
++ Long removeSession(long)
++ boolean loginDevice(long,long,int,String)
++ Session getSessionByConnectionID(long)
++ Long getConnectionIDByDeviceID(long)
+}
+
+
+enum cn.lanthing.svr.service.impl.Status {
++  Connected
++  DeviceLogged
++  Disconnected
+}
+
+class cn.lanthing.svr.service.impl.ControllingSessionServiceImpl$SessionInner {
+- long connectionID
+- long deviceID
+- String sessionID
+- int version
+- ControllingSessionServiceImpl.Status status
+}
+
+interface cn.lanthing.svr.service.DeviceIDService {
+~ DeviceCookiePair allocateDeviceID()
+~ UsedID getUsedDeviceID(long)
+~ void updateCookie(long,String)
+~ DeviceIDStat getDeviceIDStat()
+}
+
+enum cn.lanthing.svr.service.Status {
++  Ok
++  InvalidDeviceID
++  InvalidCookie
+}
+
+class cn.lanthing.svr.service.DeviceIDService$DeviceCookiePair {
+- Long deviceID
+- String cookie
++ String cookie()
++ Long deviceID()
+}
+
+
+class cn.lanthing.svr.service.DeviceIDService$DeviceIDStat {
+- Integer usedCount
+- Integer unUsedCount
++ Integer usedCount()
++ Integer unUsedCount()
+}
+
+
+class cn.lanthing.svr.controller.ControlledController {
+- DeviceIDService deviceIDService
+- ControlledSessionService controlledSessionService
+- ControllingSessionService controllingSessionService
+- ControllingSocketService controllingSocketService
+- OrderService orderService
++ void onConnectionConnected(long)
++ void onConnectionClosed(long)
++ void onConnectionUnexpectedlyClosed(long)
++ LtMessage handleLoginDevice(long,LoginDeviceProto.LoginDevice)
++ LtMessage handleOpenConnectionAck(long,OpenConnectionAckProto.OpenConnectionAck)
++ LtMessage handleCloseConnection(long,CloseConnectionProto.CloseConnection)
++ LtMessage handleKeepAlive(long,KeepAliveProto.KeepAlive)
+}
+
+
+class UnusedIDDao {
++ Database database
++ UnusedID? getNextDeviceID()
++ void deleteDeviceID(Long)
++ Int countID()
+}
+
+
+class cn.lanthing.svr.controller.ControllingController {
+- DeviceIDService deviceIDService
+- ControllingSessionService controllingSessionService
+- ControlledSessionService controlledSessionService
+- ControlledSocketService controlledSocketService
+- ControllingSocketService controllingSocketService
+- OrderService orderService
+- VersionService versionService
++ void onConnectionConnected(long)
++ void onConnectionClosed(long)
++ void onConnectionUnexpectedlyClosed(long)
++ LtMessage handleAllocateDeviceID(long,AllocateDeviceIDProto.AllocateDeviceID)
++ LtMessage handleLoginDevice(long,LoginDeviceProto.LoginDevice)
++ LtMessage handleRequestConnection(long,RequestConnectionProto.RequestConnection)
++ LtMessage handleCloseConnection(long,CloseConnectionProto.CloseConnection)
++ LtMessage handleKeepAlive(long,KeepAliveProto.KeepAlive)
+}
+
+
+interface cn.lanthing.svr.service.ControlledSessionService {
+~ void addSession(long)
+~ Long removeSession(long)
+~ boolean loginDevice(long,long,boolean,int,String)
+~ Session getSessionByDeviceID(long)
+~ Session getSessionByConnectionID(long)
+}
+
+class cn.lanthing.svr.service.ControlledSessionService$Session {
+- long connectionID
+- long deviceID
+- int version
+- String os
++ long connectionID()
++ int version()
++ long deviceID()
++ String os()
+}
+
+
+class cn.lanthing.svr.config.ReflexRelayConfig {
+- List<String> reflexes
+- List<String> relays
++ List<String> getReflexes()
++ void setReflexes(List<String>)
++ List<String> getRelays()
++ void setRelays(List<String>)
+}
+
+
+class cn.lanthing.svr.service.impl.ControllingSocketServiceImpl {
+- MessageDispatcher controllingDispatcher
++ void send(long,LtMessage)
+}
+
+
+class cn.lanthing.svr.service.impl.UserServiceImpl {
+}
+interface cn.lanthing.svr.service.UserService {
+}
+class UnusedID$Companion {
+}
+interface UnusedID {
++ Int id
++ Int deviceID
+}
+
+class UnusedIDs {
++  id
++  deviceID
+}
+
+class cn.lanthing.svr.service.impl.VersionServiceImpl {
+- Object flock
+- String versionFileName
+- VersionFile versionFile
++ void init()
++ void reloadVersionFile()
++ Version getNewVersionPC(int,int,int)
++ Version getNewVersionAndroid(int,int,int)
++ Version getNewVersionIOS(int,int,int)
+}
+
+
+class cn.lanthing.svr.service.impl.VersionServiceImpl$VersionFile {
+- List<Version> versions
++ List<Version> versions()
+}
+
+
+class cn.lanthing.svr.service.impl.ControlledSocketServiceImpl {
+- MessageDispatcher controlledDispatcher
++ void send(long,LtMessage)
+}
+
+
+class UsedIDDao {
++ Database database
++ UsedID? queryByDeviceID(Long)
++ void addDeviceID(Long,String)
++ void updateCookie(Long,String)
++ Int countID()
+}
+
+
+interface cn.lanthing.svr.service.VersionService {
+~ Version getNewVersionPC(int,int,int)
+~ Version getNewVersionAndroid(int,int,int)
+~ Version getNewVersionIOS(int,int,int)
+}
+
+class cn.lanthing.svr.service.VersionService$Version {
+- int major
+- int minor
+- int patch
+- long timestamp
+- boolean force
+- String url
+- List<String> features
+- List<String> bugfix
++ String url()
++ int patch()
++ List<String> bugfix()
++ long timestamp()
++ List<String> features()
++ int minor()
++ int major()
++ boolean force()
+}
+
+
+
+
+cn.lanthing.svr.service.ControlledSessionService <|.. cn.lanthing.svr.service.impl.ControlledSessionServiceImpl
+cn.lanthing.svr.service.impl.ControlledSessionServiceImpl +.. cn.lanthing.svr.service.impl.ControlledSessionServiceImpl$SessionInner
+cn.lanthing.svr.service.OrderService <|.. cn.lanthing.svr.service.impl.OrderServiceImpl
+Order +.. Order$Companion
+Factory <|-- Order$Companion
+org.ktorm.entity.Entity <|.. Order
+org.ktorm.schema.Table <|-- Orders
+cn.lanthing.svr.service.ControllingSessionService +.. cn.lanthing.svr.service.ControllingSessionService$Session
+UsedID +.. UsedID$Companion
+Factory <|-- UsedID$Companion
+org.ktorm.entity.Entity <|.. UsedID
+Table <|-- UsedIDs
+cn.lanthing.svr.service.OrderService +.. cn.lanthing.svr.service.OrderService$BasicOrderInfo
+cn.lanthing.svr.service.OrderService +.. cn.lanthing.svr.service.OrderService$OrderInfo
+cn.lanthing.svr.service.OrderService +.. cn.lanthing.svr.service.OrderService$HistoryOrders
+cn.lanthing.svr.service.DeviceIDService <|.. cn.lanthing.svr.service.impl.DeviceIDServiceImpl
+cn.lanthing.svr.service.ControllingSessionService <|.. cn.lanthing.svr.service.impl.ControllingSessionServiceImpl
+cn.lanthing.svr.service.impl.ControllingSessionServiceImpl +.. cn.lanthing.svr.service.impl.ControllingSessionServiceImpl$SessionInner
+cn.lanthing.svr.service.DeviceIDService +.. cn.lanthing.svr.service.DeviceIDService$DeviceCookiePair
+cn.lanthing.svr.service.DeviceIDService +.. cn.lanthing.svr.service.DeviceIDService$DeviceIDStat
+cn.lanthing.svr.service.ControlledSessionService +.. cn.lanthing.svr.service.ControlledSessionService$Session
+cn.lanthing.svr.service.ControllingSocketService <|.. cn.lanthing.svr.service.impl.ControllingSocketServiceImpl
+cn.lanthing.svr.service.UserService <|.. cn.lanthing.svr.service.impl.UserServiceImpl
+UnusedID +.. UnusedID$Companion
+Factory <|-- UnusedID$Companion
+org.ktorm.entity.Entity <|.. UnusedID
+org.ktorm.schema.Table <|-- UnusedIDs
+cn.lanthing.svr.service.VersionService <|.. cn.lanthing.svr.service.impl.VersionServiceImpl
+cn.lanthing.svr.service.impl.VersionServiceImpl +.. cn.lanthing.svr.service.impl.VersionServiceImpl$VersionFile
+cn.lanthing.svr.service.ControlledSocketService <|.. cn.lanthing.svr.service.impl.ControlledSocketServiceImpl
+cn.lanthing.svr.service.VersionService +.. cn.lanthing.svr.service.VersionService$Version
+@enduml
