@@ -97,3 +97,4 @@ application-prod.yml
 *.sqlite.ok
 ltsvr-*.yml
 ltsig-*.yml
+*.puml
