@@ -107,4 +107,8 @@ class UsedIDDao {
             result[0]
         }
     }
+
+    fun clear() {
+        database.deleteAll(UsedIDs)
+    }
 }

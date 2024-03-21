@@ -95,6 +95,7 @@ application-test.yml
 application-prod.yml
 *.sqlite
 *.sqlite.ok
+test.db
 ltsvr-*.yml
 ltsig-*.yml
 *.puml

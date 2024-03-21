@@ -52,8 +52,6 @@ public class DeviceIDServiceImpl implements DeviceIDService {
     @Autowired
     private UsedIDDao usedIDDao;
 
-    // final AutoReentrantLock lock = new AutoReentrantLock();
-
     @Override
     public DeviceCookiePair allocateDeviceID() {
         long deviceID;
@@ -88,4 +86,5 @@ public class DeviceIDServiceImpl implements DeviceIDService {
         var unUsedCount = unusedIDDao.countID();
         return new DeviceIDStat(usedCount, unUsedCount);
     }
+
 }

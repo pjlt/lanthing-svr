@@ -99,4 +99,8 @@ class CurrentOrderDao {
             ArrayList()
         }
     }
+
+    fun clear() {
+        database.deleteAll(CurrentOrders)
+    }
 }

@@ -149,4 +149,8 @@ class OrderDao {
             result[0]
         }
     }
+
+    fun clear() {
+        database.deleteAll(Orders);
+    }
 }

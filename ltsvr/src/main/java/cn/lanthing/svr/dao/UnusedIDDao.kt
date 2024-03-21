@@ -92,4 +92,13 @@ class UnusedIDDao {
         }
     }
 
+    fun clear() {
+        database.deleteAll(UnusedIDs)
+    }
+
+    fun insert(deviceID: Int) {
+        database.insert(UnusedIDs) {
+            set(it.deviceID, deviceID)
+        }
+    }
 }
