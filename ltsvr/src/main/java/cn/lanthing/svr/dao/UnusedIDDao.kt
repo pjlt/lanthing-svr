@@ -33,6 +33,7 @@ package cn.lanthing.svr.dao
 
 import cn.lanthing.svr.model.UnusedID
 import cn.lanthing.svr.model.UnusedIDs
+import jakarta.annotation.PostConstruct
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -44,19 +45,59 @@ class UnusedIDDao {
     @Autowired
     lateinit var database: Database
 
+    @PostConstruct
+    fun init() {
+        database.useConnection { conn ->
+            conn.createStatement().execute("""
+                CREATE TABLE IF NOT EXISTS "unused_device_ids" (
+                	"id"			INTEGER NOT NULL UNIQUE,
+                	"createdAt"	DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"deviceID"		INTEGER NOT NULL UNIQUE,
+                	PRIMARY KEY("id" AUTOINCREMENT)
+                );
+            """.trimIndent())
+        }
+    }
+
     fun getNextDeviceID(): UnusedID? {
-        return database
-            .from(UnusedIDs)
-            .select()
-            .orderBy(UnusedIDs.id.asc())
-            .limit(1)
-            .map { row -> UnusedIDs.createEntity(row) }
-            .first()
+        return try {
+            database
+                .from(UnusedIDs)
+                .select()
+                .orderBy(UnusedIDs.id.asc())
+                .limit(1)
+                .map { row -> UnusedIDs.createEntity(row) }
+                .first()
+        } catch (e: NoSuchElementException) {
+            null
+        }
     }
 
     fun deleteDeviceID(deviceID: Long) {
         database.delete(UnusedIDs) {
                 it.deviceID eq deviceID.toInt()
             }
+    }
+
+    fun countID() : Int {
+        val result = database
+            .from(UnusedIDs)
+            .select(count(UnusedIDs.id))
+            .map { it.getInt(1) }
+        return if (result.isEmpty()) {
+            0
+        } else {
+            result[0]
+        }
+    }
+
+    fun clear() {
+        database.deleteAll(UnusedIDs)
+    }
+
+    fun insert(deviceID: Int) {
+        database.insert(UnusedIDs) {
+            set(it.deviceID, deviceID)
+        }
     }
 }

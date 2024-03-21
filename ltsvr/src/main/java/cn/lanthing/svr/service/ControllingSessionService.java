@@ -29,29 +29,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.sockets;
+package cn.lanthing.svr.service;
 
-import cn.lanthing.ltsocket.MessageDispatcher;
-import cn.lanthing.svr.controller.ControlledController;
-import cn.lanthing.svr.controller.ControllingController;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+public interface ControllingSessionService {
 
-@Configuration
-public class Dispatcher {
-
-    @Autowired
-    private ApplicationContext applicationContext;
-
-    @Bean
-    public MessageDispatcher controllingDispatcher() throws Exception {
-        return new MessageDispatcher(ControllingController.class, applicationContext);
+    record Session(long connectionID, long deviceID, int version, String os) {
+        public Session(long connectionID, long deviceID, int version) {
+            this(connectionID, deviceID, version, "");
+        }
     }
 
-    @Bean
-    public MessageDispatcher controlledDispatcher() throws Exception {
-        return new MessageDispatcher(ControlledController.class, applicationContext);
-    }
+    void addSession(long connectionID);
+
+    Long removeSession(long connectionID);
+
+    boolean loginDevice(long connectionID, long deviceID, int version, String os);
+
+    Session getSessionByConnectionID(long connectionID);
+
+    Long getConnectionIDByDeviceID(long deviceID);
+
+    int getSessionCount();
+
+    void clearForTest();
 }

@@ -19,7 +19,6 @@
         <module>ltcodec</module>
         <module>ltsocket</module>
         <module>ltsvr</module>
-        <module>ltutil</module>
         <module>ltsig</module>
     </modules>
 
@@ -49,6 +48,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>

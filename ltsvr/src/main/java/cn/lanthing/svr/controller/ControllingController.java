@@ -61,10 +61,10 @@ public class ControllingController {
     private DeviceIDService deviceIDService;
 
     @Autowired
-    private ControllingDeviceService controllingDeviceService;
+    private ControllingSessionService controllingSessionService;
 
     @Autowired
-    private ControlledDeviceService controlledDeviceService;
+    private ControlledSessionService controlledSessionService;
 
     @Autowired
     private ControlledSocketService controlledSocketService;
@@ -80,29 +80,42 @@ public class ControllingController {
 
     @ConnectionEvent(type = ConnectionEventType.Connected)
     public void onConnectionConnected(long connectionID) {
-        controllingDeviceService.addSession(connectionID);
+        log.info("Accepted new connection({})", connectionID);
+        controllingSessionService.addSession(connectionID);
     }
 
     @ConnectionEvent(type = ConnectionEventType.Closed)
     public void onConnectionClosed(long connectionID) {
-        Long deviceID = controllingDeviceService.removeSession(connectionID);
+        Long deviceID = controllingSessionService.removeSession(connectionID);
         if (deviceID != null) {
+            log.info("Device(connectionID:{}, deviceID:{}) connection closed", connectionID, deviceID);
             orderService.controllingDeviceLogout(deviceID);
+        } else {
+            log.info("Device(connectionID:{}) connection closed failed", connectionID);
         }
     }
 
     @ConnectionEvent(type = ConnectionEventType.UnexpectedlyClosed)
     public void onConnectionUnexpectedlyClosed(long connectionID) {
-        //
+        Long deviceID = controllingSessionService.removeSession(connectionID);
+        if (deviceID != null) {
+            log.info("Device(connectionID:{}, deviceID:{}) connection unexpectedly closed", connectionID, deviceID);
+            orderService.controllingDeviceLogout(deviceID);
+        } else {
+            log.info("Device(connectionID:{}) connection unexpectedly closed failed", connectionID);
+        }
     }
 
     @MessageMapping(proto = LtProto.AllocateDeviceID)
     public LtMessage handleAllocateDeviceID(long connectionID, AllocateDeviceIDProto.AllocateDeviceID msg) {
+        log.info("Handle AllocateDeviceID for connection({})", connectionID);
         var newID = deviceIDService.allocateDeviceID();
         var ack = AllocateDeviceIDAckProto.AllocateDeviceIDAck.newBuilder();
         if (newID == null) {
+            log.error("Allocate new deviceID for connection({}) failed", connectionID);
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.AllocateDeviceIDNoAvailableID);
         } else {
+            log.info("Allocated new deviceID({}) for connection({})", newID.deviceID(), connectionID);
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
                     .setDeviceId(newID.deviceID())
                     .setCookie(newID.cookie());
@@ -112,13 +125,20 @@ public class ControllingController {
 
     @MessageMapping(proto = LtProto.LoginDevice)
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
-        log.debug("Handling LoginDevice(connectionID:{}, deviceID:{})", connectionID, msg.getDeviceId());
+        //注意与ControlledController的区别
+        log.info("Handle LoginDevice(connectionID:{}, deviceID:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
         UsedID usedID = deviceIDService.getUsedDeviceID(msg.getDeviceId());
         if (usedID == null) {
             // 不认识该ID，为客户端分配新ID
-            log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
+            log.warn("LoginDevice(connectionID:{}, deviceID:{}) failed: DeviceID valid, try allocate new deviceID", connectionID, msg.getDeviceId());
             var newID = deviceIDService.allocateDeviceID();
+            if (newID == null) {
+                log.error("Allocate new deviceID for connection(connectionID:{}, old deviceID:{}) failed", connectionID, msg.getDeviceId());
+                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
+                return new LtMessage(LtProto.LoginUserAck.ID, ack.build());
+            }
+            log.info("Allocated new deviceID({}) for connection(connectionID:{}, old deviceID:{}", newID.deviceID(), connectionID, msg.getDeviceId());
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID)
                     .setNewDeviceId(newID.deviceID())
                     .setNewCookie(newID.cookie());
@@ -126,8 +146,13 @@ public class ControllingController {
         }
         if (msg.getCookie().isEmpty() || !msg.getCookie().equals(usedID.getCookie())) {
             // cookie不对，分配新ID
-            log.warn("LoginDevice (deviceID:{}) with invalid cookie", msg.getDeviceId());
+            log.warn("LoginDevice(connectionID:{}, deviceID:{}) with invalid cookie, try allocate new deviceID", connectionID, msg.getDeviceId());
             var newID = deviceIDService.allocateDeviceID();
+            if (newID == null) {
+                log.error("Allocate new deviceID for connection(connectionID:{}, old deviceID:{}) failed", connectionID, msg.getDeviceId());
+                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
+                return new LtMessage(LtProto.LoginUserAck.ID, ack.build());
+            }
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
                     .setNewDeviceId(newID.deviceID())
                     .setNewCookie(newID.cookie());
@@ -137,22 +162,23 @@ public class ControllingController {
         var expiredAt = new Date((usedID.getUpdatedAt().toEpochSecond(ZoneOffset.UTC) + 60 * 60 * 24 * 7) * 1000);
         var now = new Date();
         if (expiredAt.before(now)) {
+            // cookie是对的，但是过期了，则更新cookie
             usedID.setCookie(UUID.randomUUID().toString());
             deviceIDService.updateCookie(usedID.getDeviceID(), usedID.getCookie());
             ack.setNewCookie(usedID.getCookie());
         }
         // 走到这里，说明id和cookie都对了
         int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();
-        boolean success = controllingDeviceService.loginDevice(connectionID, msg.getDeviceId(), versionNum);
+        boolean success = controllingSessionService.loginDevice(connectionID, msg.getDeviceId(), versionNum, msg.getOsType().toString());
         if (!success) {
             // 失败暂时有两种可能
             // 1. 代码bug
             // 2. 有同id登录了
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus);
-            log.info("LoginDevice failed({}:{})", connectionID, msg.getDeviceId());
+            log.info("LoginDevice(connectionID:{}, deviceID:{}) failed", connectionID, msg.getDeviceId());
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
-            log.info("LoginDevice success({}:{})", connectionID, msg.getDeviceId());
+            log.info("LoginDevice(connectionID:{}, deviceID:{}) success)", connectionID, msg.getDeviceId());
             VersionService.Version version = versionService.getNewVersionPC(msg.getVersionMajor(), msg.getVersionMinor(), msg.getVersionPatch());
             if (version != null) {
                 // version != null说明有新版本
@@ -174,36 +200,29 @@ public class ControllingController {
     @MessageMapping(proto = LtProto.RequestConnection)
     public LtMessage handleRequestConnection(long connectionID, RequestConnectionProto.RequestConnection msg) {
         long peerDeviceID = msg.getDeviceId();
-         Long peerConnID = controlledDeviceService.getConnectionIDByDeviceID(peerDeviceID);
-        if (peerConnID == null) {
-            log.warn("Controlled device({}) not online", peerDeviceID);
+        var controlledSession = controlledSessionService.getSessionByDeviceID(peerDeviceID);
+        if (controlledSession == null) {
+            log.warn("Handle RequestConnection(connectionID:{}, toDeviceID:{}), but peer not online", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
             ack.setDeviceId(peerDeviceID);
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionPeerNotOnline)
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
+        } else {
+            log.info("Handle RequestConnection(connectionID:{}, peer connectionID:{}, toDeviceID:{}", connectionID, controlledSession.connectionID(), peerDeviceID);
         }
-        var controlledSession = controlledDeviceService.getSessionByConnectionID(peerConnID);
-        if (controlledSession == null || controlledSession.deviceID == 0) {
-            log.warn("Controlled device({}) not login", peerDeviceID);
-            var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
-            ack.setDeviceId(peerDeviceID);
-            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionPeerNotOnline)
-                    .setRequestId(msg.getRequestId());
-            return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
-        }
-        var controllingSession = controllingDeviceService.getSessionByConnectionID(connectionID);
-        if (controllingSession == null || controllingSession.deviceID == 0) {
+        var controllingSession = controllingSessionService.getSessionByConnectionID(connectionID);
+        if (controllingSession == null || controllingSession.deviceID() == 0) {
             // 可能是这个message处理到一半，在另一个线程处理了断链
-            log.error("Get device id by connection id failed!");
+            log.error("RequestConnection(connectionID:{}, toDeviceID:{}) get controlling session by connectionID failed", connectionID, peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionInvalidStatus)
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         }
-        OrderService.OrderInfo orderInfo = orderService.newOrder(controllingSession.deviceID, peerDeviceID, msg.getRequestId());
+        OrderService.OrderInfo orderInfo = orderService.newOrder(controllingSession.deviceID(), peerDeviceID, msg.getRequestId());
         if (orderInfo == null) {
-            log.warn("RequestConnection({}->{}) failed", connectionID, peerDeviceID);
+            log.warn("RequestConnection(connectionID:{}, fromDeviceID:{}, toDeviceID:{}) create new order failed", connectionID, controllingSession.deviceID(), peerDeviceID);
             var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
             ack.setDeviceId(peerDeviceID);
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.RequestConnectionCreateOrderFailed)
@@ -220,7 +239,7 @@ public class ControllingController {
                 .setAccessToken(msg.getAccessToken())
                 .setP2PUsername(orderInfo.p2pUsername())
                 .setP2PPassword(orderInfo.p2pPassword())
-                .setClientDeviceId(controllingSession.deviceID)
+                .setClientDeviceId(controllingSession.deviceID())
                 .setCookie(msg.getCookie())
                 .setClientVersion(msg.getClientVersion())
                 .setRequiredVersion(msg.getRequiredVersion())
@@ -231,29 +250,30 @@ public class ControllingController {
         if (!Strings.isNullOrEmpty(orderInfo.relayServer())) {
             openConn.addRelayServers(orderInfo.relayServer());
         }
-        controlledSocketService.send(peerConnID, new LtMessage(LtProto.OpenConnection.ID, openConn.build()));
+        controlledSocketService.send(controlledSession.connectionID(), new LtMessage(LtProto.OpenConnection.ID, openConn.build()));
         return null;
     }
 
     @MessageMapping(proto = LtProto.CloseConnection)
     public LtMessage handleCloseConnection(long connectionID, CloseConnectionProto.CloseConnection msg) {
-        var session = controllingDeviceService.getSessionByConnectionID(connectionID);
-        if (session == null || session.deviceID == 0) {
-            log.error("Get device id by connection id failed");
+        var session = controllingSessionService.getSessionByConnectionID(connectionID);
+        if (session == null || session.deviceID() == 0) {
+            log.error("CloseConnection(connectionID:{}, roomID:{}) get session by connectionID failed", connectionID, msg.getRoomId());
             return null;
         }
-        boolean success = orderService.closeOrderFromControlling(msg.getRoomId(), session.deviceID);
+        boolean success = orderService.closeOrderFromControlling(msg.getRoomId());
         if (success) {
-            log.info("Order with room id({}) closed", msg.getRoomId());
+            log.info("CloseConnection(connectionID:{}, roomID:{}) close order success", connectionID, msg.getRoomId());
         } else {
-            log.warn("Order with room id({}) close failed", msg.getRoomId());
+            log.warn("CloseConnection(connectionID:{}, roomID:{}) close order failed", connectionID, msg.getRoomId());
         }
         return null;
     }
 
     @MessageMapping(proto = LtProto.KeepAlive)
     public LtMessage handleKeepAlive(long connectionID, KeepAliveProto.KeepAlive msg) {
-        var ack  = KeepAliveAckProto.KeepAliveAck.newBuilder();
+        //TODO: 删除超时链接
+        var ack = KeepAliveAckProto.KeepAliveAck.newBuilder();
         return new LtMessage(LtProto.KeepAliveAck.ID, ack.build());
     }
 }

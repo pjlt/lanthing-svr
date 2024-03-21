@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,28 +29,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.service;
+package cn.lanthing.svr;
 
-public interface ControllingDeviceService {
 
-    class Session {
-        public long connectionID;
-        public long deviceID;
-        public int version;
-        public Session(long conn, long dev, int ver) {
-            connectionID = conn;
-            deviceID = dev;
-            version = ver;
-        }
-    }
+import org.junit.platform.suite.api.SelectPackages;
+import org.junit.platform.suite.api.Suite;
+import org.springframework.boot.test.context.SpringBootTest;
 
-    void addSession(long connectionID);
-
-    Long removeSession(long connectionID);
-
-    boolean loginDevice(long connectionID, long deviceID, int version);
-
-    Session getSessionByConnectionID(long connectionID);
-
-    Long getConnectionIDByDeviceID(long deviceID);
+@Suite
+@SpringBootTest
+@SelectPackages({"cn.lanthing.svr.service", "cn.lanthing.svr.controller"})
+public class LtsvrTestSuit {
 }

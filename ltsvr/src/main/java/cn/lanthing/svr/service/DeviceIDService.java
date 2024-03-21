@@ -42,10 +42,14 @@ public interface DeviceIDService {
     }
     record DeviceCookiePair(Long deviceID, String cookie){}
 
+    record DeviceIDStat(Integer usedCount, Integer unUsedCount){}
+
     DeviceCookiePair allocateDeviceID();
 
     UsedID getUsedDeviceID(long deviceID);
 
     void updateCookie(long deviceID, String cookie);
+
+    DeviceIDStat getDeviceIDStat();
 
 }

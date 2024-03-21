@@ -33,8 +33,6 @@ package cn.lanthing.sig.service.impl;
 
 import cn.lanthing.sig.entity.Session;
 import cn.lanthing.sig.service.RoomService;
-import cn.lanthing.utils.AutoLock;
-import cn.lanthing.utils.AutoReentrantLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -80,7 +78,7 @@ public class RoomServiceImpl implements RoomService {
         }
 
         Session getPeer(long connectionID) {
-            if (sessions.isEmpty() || sessions.size()==1) {
+            if (sessions.isEmpty() || sessions.size() == 1) {
                 return null;
             }
             if (sessions.get(0).getConnectionID() == connectionID) {
@@ -92,7 +90,6 @@ public class RoomServiceImpl implements RoomService {
 
     }
 
-    private final AutoReentrantLock lock = new AutoReentrantLock();
 
     private final Map<Long, Room> connID2Room = new HashMap<>();
 
@@ -100,51 +97,45 @@ public class RoomServiceImpl implements RoomService {
 
 
     @Override
-    public boolean joinRoom(long connectionID, String roomID, String sessionID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var session = new Session();
-            session.setRoomID(roomID);
-            session.setSessionID(sessionID);
-            session.setConnectionID(connectionID);
-            var room = roomID2Room.get(roomID);
-            if (room == null) {
-                room = new Room(session);
-                roomID2Room.put(roomID, room);
-                connID2Room.put(connectionID, room);
-                return true;
-            }
-            boolean success = room.join(session);
-            if (success) {
-                connID2Room.put(connectionID, room);
-                return true;
-            }
-            return false;
+    public synchronized boolean joinRoom(long connectionID, String roomID, String sessionID) {
+        var session = new Session();
+        session.setRoomID(roomID);
+        session.setSessionID(sessionID);
+        session.setConnectionID(connectionID);
+        var room = roomID2Room.get(roomID);
+        if (room == null) {
+            room = new Room(session);
+            roomID2Room.put(roomID, room);
+            connID2Room.put(connectionID, room);
+            return true;
+        }
+        boolean success = room.join(session);
+        if (success) {
+            connID2Room.put(connectionID, room);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public synchronized void leaveRoom(long connectionID) {
+        var room = connID2Room.get(connectionID);
+        if (room == null) {
+            return;
+        }
+        connID2Room.remove(connectionID);
+        room.leave(connectionID);
+        if (room.empty()) {
+            roomID2Room.remove(room.roomID);
         }
     }
 
     @Override
-    public void leaveRoom(long connectionID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var room = connID2Room.get(connectionID);
-            if (room == null) {
-                return;
-            }
-            connID2Room.remove(connectionID);
-            room.leave(connectionID);
-            if (room.empty()) {
-                roomID2Room.remove(room.roomID);
-            }
+    public synchronized Session getPeer(long connectionID) {
+        var room = connID2Room.get(connectionID);
+        if (room == null) {
+            return null;
         }
-    }
-
-    @Override
-    public Session getPeer(long connectionID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var room = connID2Room.get(connectionID);
-            if (room == null) {
-                return null;
-            }
-            return room.getPeer(connectionID);
-        }
+        return room.getPeer(connectionID);
     }
 }

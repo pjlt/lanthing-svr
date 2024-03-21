@@ -31,16 +31,16 @@
 
 package cn.lanthing.svr.service.impl;
 
-import cn.lanthing.svr.service.ControllingDeviceService;
-import cn.lanthing.utils.AutoLock;
-import cn.lanthing.utils.AutoReentrantLock;
+import cn.lanthing.svr.service.ControllingSessionService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Service
-public class ControllingDeviceServiceImpl implements ControllingDeviceService {
+public class ControllingSessionServiceImpl implements ControllingSessionService {
 
     private enum Status {
         Connected,
@@ -54,11 +54,11 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
 
         private long deviceID = 0;
 
-        private String sessionID;
-
         private int version = 0;
 
-        private ControllingDeviceServiceImpl.Status status;
+        private String os = "";
+
+        private ControllingSessionServiceImpl.Status status;
 
         SessionInner(long connectionID) {
             this.connectionID = connectionID;
@@ -69,61 +69,67 @@ public class ControllingDeviceServiceImpl implements ControllingDeviceService {
 
     private final Map<Long, Long> deviceIDToConnIDMap = new HashMap<>();
 
-    private final AutoReentrantLock lock = new AutoReentrantLock();
-
     @Override
     public void addSession(long connectionID) {
         var session = new SessionInner(connectionID);
         session.status = Status.Connected;
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
+        synchronized (this) {
             connIDToSessionMap.putIfAbsent(connectionID, session);
         }
     }
 
     @Override
-    public Long removeSession(long connectionID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var session = connIDToSessionMap.remove(connectionID);
-            if (session != null) {
-                deviceIDToConnIDMap.remove(session.deviceID);
-                return session.deviceID;
-            } else {
-                return null;
-            }
+    public synchronized Long removeSession(long connectionID) {
+        var session = connIDToSessionMap.remove(connectionID);
+        if (session != null) {
+            deviceIDToConnIDMap.remove(session.deviceID);
+            return session.deviceID;
+        } else {
+            return null;
         }
     }
 
     @Override
-    public boolean loginDevice(long connectionID, long deviceID, int version) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var session = connIDToSessionMap.get(connectionID);
-            if (session == null) {
-                return false;
-            }
-            if (session.status != Status.Connected) {
-                //已有设备登录或已断开
-                return false;
-            }
-            session.deviceID = deviceID;
-            session.status = Status.DeviceLogged;
-            session.version = version;
-            deviceIDToConnIDMap.put(deviceID, connectionID);
-            return true;
+    public synchronized boolean loginDevice(long connectionID, long deviceID, int version, String os) {
+
+        var session = connIDToSessionMap.get(connectionID);
+        if (session == null) {
+            log.error("LoginDevice failed, get session by connection id failed");
+            return false;
         }
+        if (session.status != Status.Connected) {
+            //已有设备登录或已断开
+            log.error("LoginDevice failed, session.status != Connected");
+            return false;
+        }
+        session.deviceID = deviceID;
+        session.status = Status.DeviceLogged;
+        session.version = version;
+        session.os = os;
+        deviceIDToConnIDMap.put(deviceID, connectionID);
+        return true;
+
     }
 
     @Override
-    public Session getSessionByConnectionID(long connectionID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var session = connIDToSessionMap.get(connectionID);
-            return session == null ? null : new Session(session.connectionID, session.deviceID, session.version);
-        }
+    public synchronized Session getSessionByConnectionID(long connectionID) {
+        var session = connIDToSessionMap.get(connectionID);
+        return session == null ? null : new Session(session.connectionID, session.deviceID, session.version, session.os);
     }
 
     @Override
-    public Long getConnectionIDByDeviceID(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            return deviceIDToConnIDMap.get(deviceID);
-        }
+    public synchronized Long getConnectionIDByDeviceID(long deviceID) {
+        return deviceIDToConnIDMap.get(deviceID);
+    }
+
+    @Override
+    public synchronized int getSessionCount() {
+        return connIDToSessionMap.size();
+    }
+
+    @Override
+    public synchronized void clearForTest() {
+        connIDToSessionMap.clear();
+        deviceIDToConnIDMap.clear();
     }
 }

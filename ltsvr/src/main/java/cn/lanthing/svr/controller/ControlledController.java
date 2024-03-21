@@ -41,12 +41,14 @@ import cn.lanthing.ltsocket.ConnectionEvent;
 import cn.lanthing.ltsocket.ConnectionEventType;
 import cn.lanthing.ltsocket.MessageController;
 import cn.lanthing.ltsocket.MessageMapping;
+import cn.lanthing.svr.model.Order;
 import cn.lanthing.svr.model.UsedID;
 import cn.lanthing.svr.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
+
+import java.util.Arrays;
 
 @Slf4j
 @MessageController
@@ -56,10 +58,10 @@ public class ControlledController {
     private DeviceIDService deviceIDService;
 
     @Autowired
-    private ControlledDeviceService controlledDeviceService;
+    private ControlledSessionService controlledSessionService;
 
     @Autowired
-    private ControllingDeviceService controllingDeviceService;
+    private ControllingSessionService controllingSessionService;
 
     @Autowired
     private ControllingSocketService controllingSocketService;
@@ -69,102 +71,108 @@ public class ControlledController {
 
     @ConnectionEvent(type = ConnectionEventType.Connected)
     public void onConnectionConnected(long connectionID) {
-        controlledDeviceService.addSession(connectionID);
+        log.info("Accepted new connection({})", connectionID);
+        controlledSessionService.addSession(connectionID);
     }
 
     @ConnectionEvent(type = ConnectionEventType.Closed)
     public void onConnectionClosed(long connectionID) {
-        Long deviceID = controlledDeviceService.removeSession(connectionID);
+        Long deviceID = controlledSessionService.removeSession(connectionID);
         if (deviceID != null) {
+            log.info("Device(connectionID:{}, deviceID:{}) connection closed", connectionID, deviceID);
             orderService.controlledDeviceLogout(deviceID);
+        } else {
+            log.info("Device(connectionID:{}) connection closed failed", connectionID);
         }
     }
 
     @ConnectionEvent(type = ConnectionEventType.UnexpectedlyClosed)
     public void onConnectionUnexpectedlyClosed(long connectionID) {
-        //
+        Long deviceID = controlledSessionService.removeSession(connectionID);
+        if (deviceID != null) {
+            log.info("Device(connectionID:{}, deviceID:{}) connection closed", connectionID, deviceID);
+            orderService.controlledDeviceLogout(deviceID);
+        } else {
+            log.info("Device(connectionID:{}) connection closed failed", connectionID);
+        }
     }
 
     @MessageMapping(proto = LtProto.LoginDevice)
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
-        log.debug("Handling LoginDevice({}:{})", connectionID, msg.getDeviceId());
+        //注意与ControllingController的区别
+        log.info("Handle LoginDevice(connectionID:{}, deviceID:{})", connectionID, msg.getDeviceId());
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
         UsedID usedID = deviceIDService.getUsedDeviceID(msg.getDeviceId());
         if (usedID == null) {
             // 不认识该id，登录失败
-            log.warn("LoginDevice failed: device id({}) not valid", msg.getDeviceId());
+            log.warn("LoginDevice(connectionID:{}, deviceID:{}) failed: DeviceID valid", connectionID, msg.getDeviceId());
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
-        if (!msg.getCookie().isEmpty()) {
-            if (!msg.getCookie().equals(usedID.getCookie())) {
-                // cookie不对，登录失败
-                log.warn("LoginDevice(deviceID:{} with wrong cookie", usedID.getDeviceID());
-                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
-                return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
-            }
-        } else {
-            // 空cookie，客户端代码错误
-            log.warn("LoginDevice(deviceID:{}) with empty cookie", msg.getDeviceId());
+        if (msg.getCookie().isEmpty() || !msg.getCookie().equals(usedID.getCookie())) {
+            // cookie不对，登录失败
+            log.warn("LoginDevice(connectionID:{}, deviceID:{}) with invalid cookie", connectionID, msg.getDeviceId());
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
 
         int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();
-        boolean success = controlledDeviceService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl(), versionNum);
+        boolean success = controlledSessionService.loginDevice(connectionID, msg.getDeviceId(), msg.getAllowControl(), versionNum, msg.getOsType().toString());
         if (!success) {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus);
-            log.info("LoginDevice failed({}:{})", connectionID, msg.getDeviceId());
+            log.info("LoginDevice(connectionID:{}, deviceID:{}) failed", connectionID, msg.getDeviceId());
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
-            log.info("LoginDevice success({}:{})", connectionID, msg.getDeviceId());
+            log.info("LoginDevice(connectionID:{}, deviceID:{}) success)", connectionID, msg.getDeviceId());
         }
         return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
     }
 
     @MessageMapping(proto = LtProto.OpenConnectionAck)
     public LtMessage handleOpenConnectionAck(long connectionID, OpenConnectionAckProto.OpenConnectionAck msg) {
-        var session = controlledDeviceService.getSessionByConnectionID(connectionID);
-        if (session == null || session.deviceID == 0) {
-            log.error("Get device id by connection id failed!");
+        var session = controlledSessionService.getSessionByConnectionID(connectionID);
+        if (session == null || session.deviceID() == 0) {
+            log.error("Handle OpenConnectionAck(connectionID:{}) get deviceID by connectionID failed", connectionID);
             return null;
         }
-        OrderService.OrderInfo orderInfo = orderService.getOrderByControlledDeviceID(session.deviceID);
-        if (orderInfo == null) {
-            log.error("Get order info by device id({}) failed", session.deviceID);
+        Order order = orderService.getOrderByControlledDeviceID(session.deviceID());
+        if (order == null) {
+            log.error("OpenConnectionAck(connectionID:{}, deviceID:{}) get order by deviceID failed", connectionID, session.deviceID());
             return null;
         }
-        Long controllingConnectionID = controllingDeviceService.getConnectionIDByDeviceID(orderInfo.fromDeviceID());
+        Long controllingConnectionID = controllingSessionService.getConnectionIDByDeviceID(order.getFromDeviceID());
         if (controllingConnectionID == null) {
-            log.warn("Get connection id by controlling device id({}) failed", orderInfo.fromDeviceID());
+            log.error("OpenConnectionAck(connectionID:{}, deviceID:{}, fromDeviceID:{}) get connectionID by fromDeviceID failed", connectionID, session.deviceID(), order.getFromDeviceID());
             return null;
         }
+        log.info("Handle OpenConnectionAck(connectionID:{}, deviceID:{}, fromConnectionID:{}, fromDeviceID:{})", connectionID, session.deviceID(), controllingConnectionID, order.getFromDeviceID());
         var ack = RequestConnectionAckProto.RequestConnectionAck.newBuilder();
-        ack.setDeviceId(session.deviceID);
+        ack.setDeviceId(session.deviceID());
         if (msg.getErrCode() != ErrorCodeOuterClass.ErrorCode.Success) {
-            ack.setErrCode(msg.getErrCode())
-                    .setRequestId(orderInfo.clientRequestID());
-            boolean success = orderService.closeOrderFromControlled(orderInfo.roomID(), orderInfo.toDeviceID());
+            ack.setErrCode(msg.getErrCode()).setRequestId(order.getClientRequestID());
+            boolean success = orderService.closeOrderFromControlled(order.getRoomID());
             if (success) {
-                log.info("Order with room id({}) closed", orderInfo.roomID());
+                log.info("OpenConnectionAck(connectionID:{}, deviceID:{}, fromConnectionID:{}, fromDeviceID:{}, roomID:{}) received error code {}, close order success",
+                        connectionID, session.deviceID(), controllingConnectionID, order.getFromDeviceID(), order.getRoomID(), msg.getErrCode());
             } else {
-                log.warn("Order with room id({}) close failed", orderInfo.roomID());
+                log.warn("OpenConnectionAck(connectionID:{}, deviceID:{}, fromConnectionID:{}, fromDeviceID:{}, roomID:{}) received error code {}, close order failed",
+                        connectionID, session.deviceID(), controllingConnectionID, order.getFromDeviceID(), order.getRoomID(), msg.getErrCode());
             }
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success)
-                    .setRequestId(orderInfo.clientRequestID())
-                    .setDeviceId(orderInfo.toDeviceID())
-                    .setSignalingAddr(orderInfo.signalingAddress())
-                    .setSignalingPort(orderInfo.signalingPort())
-                    .setRoomId(orderInfo.roomID())
-                    .setClientId(orderInfo.clientID())
-                    .setAuthToken(orderInfo.authToken())
-                    .setP2PUsername(orderInfo.p2pUsername())
-                    .setP2PPassword(orderInfo.p2pPassword())
+                    .setRequestId(order.getClientRequestID())
+                    .setDeviceId(order.getToDeviceID())
+                    .setSignalingAddr(order.getSignalingHost())
+                    .setSignalingPort(order.getSignalingPort())
+                    .setRoomId(order.getRoomID())
+                    .setClientId(order.getClientID())
+                    .setAuthToken(order.getAuthToken())
+                    .setP2PUsername(order.getP2pUser())
+                    .setP2PPassword(order.getP2pToken())
                     .setStreamingParams(msg.getStreamingParams())
                     .setTransportType(msg.getTransportType());
-            if (!CollectionUtils.isEmpty(orderInfo.reflexServers())) {
-                ack.addAllReflexServers(orderInfo.reflexServers());
+            if (!order.getReflexServers().isEmpty()) {
+                ack.addAllReflexServers(Arrays.asList(order.getReflexServers().split(",")));
             }
         }
         controllingSocketService.send(controllingConnectionID, new LtMessage(LtProto.RequestConnectionAck.ID, ack.build()));
@@ -173,23 +181,24 @@ public class ControlledController {
 
     @MessageMapping(proto = LtProto.CloseConnection)
     public LtMessage handleCloseConnection(long connectionID, CloseConnectionProto.CloseConnection msg) {
-        var session = controlledDeviceService.getSessionByConnectionID(connectionID);
-        if (session == null || session.deviceID == 0) {
-            log.error("Get device id by connection id failed");
+        var session = controlledSessionService.getSessionByConnectionID(connectionID);
+        if (session == null || session.deviceID() == 0) {
+            log.error("CloseConnection(connectionID:{}, roomID:{}) get session by connectionID failed", connectionID, msg.getRoomId());
             return null;
         }
-        boolean success = orderService.closeOrderFromControlled(msg.getRoomId(), session.deviceID);
+        boolean success = orderService.closeOrderFromControlled(msg.getRoomId());
         if (success) {
-            log.info("Order with room id({}) closed", msg.getRoomId());
+            log.info("CloseConnection(connectionID:{}, roomID:{}) close order success", connectionID, msg.getRoomId());
         } else {
-            log.warn("Order with room id({}) close failed", msg.getRoomId());
+            log.warn("CloseConnection(connectionID:{}, roomID:{}) close order failed", connectionID, msg.getRoomId());
         }
         return null;
     }
 
     @MessageMapping(proto = LtProto.KeepAlive)
     public LtMessage handleKeepAlive(long connectionID, KeepAliveProto.KeepAlive msg) {
-        var ack  = KeepAliveAckProto.KeepAliveAck.newBuilder();
+        //TODO: 删除超时链接
+        var ack = KeepAliveAckProto.KeepAliveAck.newBuilder();
         return new LtMessage(LtProto.KeepAliveAck.ID, ack.build());
     }
 }

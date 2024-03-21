@@ -57,8 +57,7 @@ open class KtormConfig {
     open fun database(): Database {
         return Database.connect(
             url = jdbcConfig().url,
-            driver = jdbcConfig().driverClassName,
-            logger = Slf4jLoggerAdapter(Logger.ROOT_LOGGER_NAME))
+            driver = jdbcConfig().driverClassName)
     }
 
     @Bean

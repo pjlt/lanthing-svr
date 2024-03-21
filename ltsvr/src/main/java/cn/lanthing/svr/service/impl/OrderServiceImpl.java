@@ -33,9 +33,12 @@ package cn.lanthing.svr.service.impl;
 
 import cn.lanthing.svr.config.ReflexRelayConfig;
 import cn.lanthing.svr.config.SignalingConfig;
+import cn.lanthing.svr.dao.CurrentOrderDao;
+import cn.lanthing.svr.dao.OrderDao;
+import cn.lanthing.svr.model.CurrentOrder;
+import cn.lanthing.svr.model.Order;
 import cn.lanthing.svr.service.OrderService;
-import cn.lanthing.utils.AutoLock;
-import cn.lanthing.utils.AutoReentrantLock;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,22 +46,21 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 
+@Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
-
-    private final Map<Long, OrderInfo> controlledDeviceIDToOrderInfoMap = new HashMap<>();
-
-    private final Map<Long, OrderInfo> controllingDeviceIDToOrderInfoMap = new HashMap<>();
-
-    private final Map<String, OrderInfo> roomIDToOrderInfoMap = new HashMap<>();
-
-    private final AutoReentrantLock lock = new AutoReentrantLock();
 
     @Autowired
     private SignalingConfig signalingConfig;
 
     @Autowired
     private ReflexRelayConfig reflexRelayConfig;
+
+    @Autowired
+    private OrderDao orderDao;
+
+    @Autowired
+    private CurrentOrderDao currentOrderDao;
 
     @Override
     public OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID) {
@@ -81,87 +83,92 @@ public class OrderServiceImpl implements OrderService {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
                 RandomStringUtils.randomAlphanumeric(6),
-                RandomStringUtils.randomAlphanumeric(8),
+                RandomStringUtils.randomAlphanumeric(20),
                 relayServer,
                 reflexServers);
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var previousValue = controlledDeviceIDToOrderInfoMap.putIfAbsent(toDeviceID, orderInfo);
-            if (previousValue != null) {
-                //已经在被控，打log怕影响到锁了
-                return null;
-            }
-            previousValue = controllingDeviceIDToOrderInfoMap.putIfAbsent(fromDeviceID, orderInfo);
-            if (previousValue != null) {
-                controlledDeviceIDToOrderInfoMap.remove(toDeviceID);
-                return null;
-            }
-            roomIDToOrderInfoMap.put(orderInfo.roomID(), orderInfo);
+        boolean success = currentOrderDao.insertOrder(orderInfo);
+        if (!success) {
+            log.error("Insert new OrderStatus(fromDeviceID:{}, toDeviceID:{}) failed, maybe there is another order with same toDeviceID", orderInfo.fromDeviceID(), orderInfo.toDeviceID());
+            return null;
         }
+        success = orderDao.insertOrder(orderInfo);
+        if (!success) {
+            log.error("Insert new Order(fromDeviceID:{}, toDeviceID:{}) failed", orderInfo.fromDeviceID(), orderInfo.toDeviceID());
+            currentOrderDao.deleteOrder(orderInfo.roomID());
+            return null;
+        }
+        log.info("Insert new Order(fromDeviceID:{}, toDeviceID:{}, roomID:{}) success", orderInfo.fromDeviceID(), orderInfo.toDeviceID(), orderInfo.roomID());
         return orderInfo;
     }
 
     @Override
-    public OrderInfo getOrderByControlledDeviceID(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            return controlledDeviceIDToOrderInfoMap.get(deviceID);
+    public Order getOrderByControlledDeviceID(long deviceID) {
+        var orderStatus = currentOrderDao.queryOrderByToDeviceID((int) deviceID);
+        if (orderStatus == null) {
+            log.error("Query OrderStatus by toDeviceID({}) failed", deviceID);
+            return null;
         }
+        var order = orderDao.queryOrderByRoomID(orderStatus.getRoomID());
+        if (order == null) {
+            log.error("Query Order by toDeviceID({}) -> roomID({}) -> Order failed", deviceID, orderStatus.getRoomID());
+        }
+        return order;
     }
 
     @Override
-    public boolean closeOrderFromControlled(String roomID, long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var orderInfo = roomIDToOrderInfoMap.get(roomID);
-            if (orderInfo == null) {
-                return false;
-            }
-            if (orderInfo.toDeviceID() != deviceID) {
-                return false;
-            }
-            roomIDToOrderInfoMap.remove(roomID);
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
-            return true;
-        }
+    public boolean closeOrderFromControlled(String roomID) {
+        final String reason = "controlled_close";
+        currentOrderDao.deleteOrder(roomID);
+        boolean success = orderDao.markOrderFinishedWithReason(roomID, reason);
+        log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", roomID, reason, success ? "success" : "failed");
+        return success;
     }
 
     @Override
-    public boolean closeOrderFromControlling(String roomID, long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var orderInfo = roomIDToOrderInfoMap.get(roomID);
-            if (orderInfo == null) {
-                return false;
-            }
-            if (orderInfo.fromDeviceID() != deviceID) {
-                return false;
-            }
-            roomIDToOrderInfoMap.remove(roomID);
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
-            return true;
-        }
+    public boolean closeOrderFromControlling(String roomID) {
+        final String reason = "controlling_close";
+        currentOrderDao.deleteOrder(roomID);
+        boolean success = orderDao.markOrderFinishedWithReason(roomID, reason);
+        log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", roomID, reason, success ? "success" : "failed");
+        return success;
     }
 
     @Override
     public void controlledDeviceLogout(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var orderInfo = controlledDeviceIDToOrderInfoMap.remove(deviceID);
-            if (orderInfo == null) {
-                return;
-            }
-            controllingDeviceIDToOrderInfoMap.remove(orderInfo.fromDeviceID());
-            roomIDToOrderInfoMap.remove(orderInfo.roomID());
+        final String reason = "controlled_logout";
+        var orderStatus = currentOrderDao.queryOrderByToDeviceID((int)deviceID);
+        if (orderStatus == null) {
+            log.error("ControlledDeviceLogout: Query OrderStatus by toDeviceID({}) failed", deviceID);
+            return;
         }
+        currentOrderDao.deleteOrder(orderStatus.getRoomID());
+        boolean success = orderDao.markOrderFinishedWithReason(orderStatus.getRoomID(), reason);
+        log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", orderStatus.getRoomID(), reason, success ? "success" : "failed");
     }
 
     @Override
     public void controllingDeviceLogout(long deviceID) {
-        try (AutoLock lockGuard = this.lock.lockAsResource()) {
-            var orderInfo = controllingDeviceIDToOrderInfoMap.remove(deviceID);
-            if (orderInfo == null) {
-                return;
-            }
-            controlledDeviceIDToOrderInfoMap.remove(orderInfo.toDeviceID());
-            roomIDToOrderInfoMap.remove(orderInfo.roomID());
+        final String reason = "controlling_logout";
+        List<CurrentOrder> statusList = currentOrderDao.queryOrderByFromDeviceID((int)deviceID);
+        if (statusList.isEmpty()) {
+            log.error("ControllingDeviceLogout: Query List<OrderStatus> by fromDeviceID({}) failed", deviceID);
+            return;
         }
+        for (var status : statusList) {
+            currentOrderDao.deleteOrder(status.getRoomID());
+            boolean success = orderDao.markOrderFinishedWithReason(status.getRoomID(), reason);
+            log.info("MarkOrderFinishedWithReason({}, reason:{}) {}", status.getRoomID(), reason, success ? "success" : "failed");
+        }
+    }
+
+    @Override
+    public HistoryOrders getHistoryOrders(int index, int limit) {
+        var orders = orderDao.queryHistoryOrders(index, limit);
+        var total = orderDao.countOrder();
+        List<BasicOrderInfo> basicOrders = new ArrayList<>();
+        for (var order : orders) {
+            basicOrders.add(BasicOrderInfo.createFrom(order));
+        }
+        return new HistoryOrders(total, index, limit, basicOrders);
     }
 }

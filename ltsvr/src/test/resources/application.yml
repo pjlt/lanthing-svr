@@ -1,5 +1,5 @@
 jdbc:
-  url: jdbc:sqlite:/path/to/sqlite.db
+  url: jdbc:sqlite:./test.db
   driver-class-name: org.sqlite.JDBC
 
 server-address:
@@ -18,22 +18,12 @@ log:
   level: INFO
 
 controlled-socket-svr:
-  port: 4567
-  ssl-port: 5678
+  port: 0
   ip: "0.0.0.0"
-  enable-ssl: false
-  certs-folder: "./certs"
-  cert-chain-file: "server.crt"
-  private-key-file: "server.key"
 
 controlling-socket-svr:
-  port: 9876
-  ssl-port: 8765
+  port: 0
   ip: "0.0.0.0"
-  enable-ssl: false
-  certs-folder: "./certs"
-  cert-chain-file: "server.crt"
-  private-key-file: "server.key"
 
 
 signaling:
@@ -41,4 +31,4 @@ signaling:
   port: 8842
 
 version:
-  file: "/path/to/versions.json"
+  file: "./versions.json"

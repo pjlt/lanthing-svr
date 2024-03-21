@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,29 +29,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.sockets;
+package cn.lanthing.svr.model
 
-import cn.lanthing.ltsocket.MessageDispatcher;
-import cn.lanthing.svr.controller.ControlledController;
-import cn.lanthing.svr.controller.ControllingController;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.ktorm.entity.Entity
+import org.ktorm.schema.Table
+import org.ktorm.schema.datetime
+import org.ktorm.schema.int
+import org.ktorm.schema.varchar
+import java.time.LocalDateTime
 
-@Configuration
-public class Dispatcher {
+interface CurrentOrder : Entity<CurrentOrder> {
+    companion object : Entity.Factory<CurrentOrder>()
+    var id: Int
+    var createdAt: LocalDateTime
+    var fromDeviceID: Int
+    var toDeviceID: Int
+    var roomID: String
+}
 
-    @Autowired
-    private ApplicationContext applicationContext;
 
-    @Bean
-    public MessageDispatcher controllingDispatcher() throws Exception {
-        return new MessageDispatcher(ControllingController.class, applicationContext);
-    }
-
-    @Bean
-    public MessageDispatcher controlledDispatcher() throws Exception {
-        return new MessageDispatcher(ControlledController.class, applicationContext);
-    }
+object CurrentOrders : Table<CurrentOrder>("current_orders") {
+    val id = int("id").primaryKey().bindTo { it.id }
+    val createdAt = datetime("createdAt").bindTo { it.createdAt }
+    val fromDeviceID = int("fromDeviceID").bindTo { it.fromDeviceID }
+    val toDeviceID = int("toDeviceID").bindTo { it.toDeviceID }
+    val roomID = varchar("roomID").bindTo { it.roomID }
 }

@@ -31,8 +31,9 @@
 
 package cn.lanthing.svr.dao
 
-import cn.lanthing.svr.model.UsedID
-import cn.lanthing.svr.model.UsedIDs
+import cn.lanthing.svr.model.CurrentOrder
+import cn.lanthing.svr.model.CurrentOrders
+import cn.lanthing.svr.service.OrderService.OrderInfo
 import jakarta.annotation.PostConstruct
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
@@ -40,74 +41,65 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
 @Component
-class UsedIDDao {
-
+class CurrentOrderDao {
     @Autowired
-    lateinit var database: Database
+    private lateinit var database: Database
 
     @PostConstruct
     fun init() {
-        database.useConnection { conn ->
+       database.useConnection { conn ->
             conn.createStatement().execute("""
-                CREATE TABLE IF NOT EXISTS used_device_ids2 (
-                	"id"	        INTEGER NOT NULL UNIQUE,
-                	"createdAt"	    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                	"updatedAt"	    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                	"deviceID"      INTEGER,
-                	"cookie"        TEXT,
+                CREATE TABLE IF NOT EXISTS "current_orders" (
+                	"id"				INTEGER NOT NULL UNIQUE,
+                	"createdAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"fromDeviceID"		INTEGER NOT NULL,
+                	"toDeviceID"		INTEGER NOT NULL UNIQUE,
+                	"roomID"			VARCHAR(128) NOT NULL UNIQUE,
                 	PRIMARY KEY("id" AUTOINCREMENT)
                 );
-                CREATE TRIGGER IF NOT EXISTS UpdateTimestamp
-                	AFTER UPDATE
-                	ON used_device_ids2
-                BEGIN
-                	UPDATE used_device_ids2 SET updatedAt = CURRENT_TIMESTAMP WHERE id=OLD.id;
-                END;
             """.trimIndent())
         }
     }
 
-    fun queryByDeviceID(deviceID: Long): UsedID? {
+    fun insertOrder(info: OrderInfo) : Boolean {
+        val count = database.insert(CurrentOrders) {
+            set(it.fromDeviceID, info.fromDeviceID.toInt())
+            set(it.toDeviceID, info.toDeviceID.toInt())
+            set(it.roomID, info.roomID)
+        }
+        return count != 0
+    }
+
+    fun deleteOrder(roomID: String) {
+        database.delete(CurrentOrders) { it.roomID eq roomID }
+    }
+
+    fun queryOrderByToDeviceID(toDeviceID: Int) : CurrentOrder? {
         return try {
             database
-                .from(UsedIDs)
+                .from(CurrentOrders)
                 .select()
-                .where { UsedIDs.deviceID eq deviceID.toInt() }
-                .limit(1)
-                .map { row -> UsedIDs.createEntity(row) }
+                .where { CurrentOrders.toDeviceID eq toDeviceID }
+                .map { row -> CurrentOrders.createEntity(row) }
                 .first()
         } catch (e: NoSuchElementException) {
             null
         }
     }
 
-    fun addDeviceID(deviceID: Long, cookie: String) {
-        database.insert(UsedIDs) {
-            set(it.deviceID, deviceID.toInt())
-            set(it.cookie, cookie)
-        }
-    }
-
-    fun updateCookie(deviceID: Long, cookie: String) {
-        database.update(UsedIDs) {
-            set(it.cookie, cookie)
-            where { it.deviceID eq deviceID.toInt() }
-        }
-    }
-
-    fun countID() : Int {
-        val result = database
-            .from(UsedIDs)
-            .select(count())
-            .map { it.getInt(1) }
-        return if (result.isEmpty()) {
-            0
-        } else {
-            result[0]
+    fun queryOrderByFromDeviceID(fromDeviceID: Int) : List<CurrentOrder> {
+        return try {
+            database
+                .from(CurrentOrders)
+                .select()
+                .where{ CurrentOrders.fromDeviceID eq fromDeviceID }
+                .map { row -> CurrentOrders.createEntity(row) }
+        } catch (e: NoSuchElementException) {
+            ArrayList()
         }
     }
 
     fun clear() {
-        database.deleteAll(UsedIDs)
+        database.deleteAll(CurrentOrders)
     }
 }

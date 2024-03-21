@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,29 +29,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.sockets;
+package cn.lanthing.svr.controller;
 
-import cn.lanthing.ltsocket.MessageDispatcher;
-import cn.lanthing.svr.controller.ControlledController;
-import cn.lanthing.svr.controller.ControllingController;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.test.context.SpringBootTest;
 
-@Configuration
-public class Dispatcher {
-
-    @Autowired
-    private ApplicationContext applicationContext;
-
-    @Bean
-    public MessageDispatcher controllingDispatcher() throws Exception {
-        return new MessageDispatcher(ControllingController.class, applicationContext);
-    }
-
-    @Bean
-    public MessageDispatcher controlledDispatcher() throws Exception {
-        return new MessageDispatcher(ControlledController.class, applicationContext);
-    }
+@SpringBootTest
+public class ControlledControllerTest {
 }

@@ -19,11 +19,6 @@
         </dependency>
         <dependency>
             <groupId>cn.lanthing</groupId>
-            <artifactId>ltutil</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>cn.lanthing</groupId>
             <artifactId>ltproto</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
@@ -45,6 +40,11 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -72,6 +72,10 @@
             <artifactId>kotlin-test</artifactId>
             <version>${kotlin.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
         </dependency>
     </dependencies>
 
@@ -153,6 +157,14 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/LtsvrTestSuit.java</include>
+                    </includes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

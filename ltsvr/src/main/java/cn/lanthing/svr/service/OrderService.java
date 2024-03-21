@@ -31,9 +31,41 @@
 
 package cn.lanthing.svr.service;
 
+import cn.lanthing.svr.model.Order;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public interface OrderService {
+
+    record BasicOrderInfo(
+            int id,
+            LocalDateTime start,
+            LocalDateTime finish,
+            String duration,
+            String finishReason,
+            long fromDeviceID,
+            long toDeviceID
+    ) {
+        public static BasicOrderInfo createFrom(Order order) {
+            var finishAt = order.getFinishedAt();
+            if (finishAt == null) {
+                finishAt = LocalDateTime.now();
+            }
+            var duration = Duration.between(order.getCreatedAt(), finishAt);
+            return new BasicOrderInfo(
+                    order.getId(),
+                    order.getCreatedAt(),
+                    order.getFinishedAt(),
+                    String.format("%d:%02d:%02d", duration.toHoursPart(), duration.toMillisPart(), duration.toSecondsPart()),
+                    order.getFinishReason(),
+                    order.getFromDeviceID(),
+                    order.getToDeviceID()
+            );
+        }
+    }
 
     record OrderInfo(
             long fromDeviceID,
@@ -48,18 +80,21 @@ public interface OrderService {
             String p2pUsername,
             String p2pPassword,
             String relayServer,
-            List<String> reflexServers){
-    }
+            List<String> reflexServers){}
+
+    record HistoryOrders(int total, int index, int limit, List<BasicOrderInfo> orders) {}
 
     OrderInfo newOrder(long fromDeviceID, long toDeviceID, long clientRequestID);
 
-    OrderInfo getOrderByControlledDeviceID(long deviceID);
+    Order getOrderByControlledDeviceID(long deviceID);
 
-    boolean closeOrderFromControlled(String roomID, long deviceID);
+    boolean closeOrderFromControlled(String roomID);
 
-    boolean closeOrderFromControlling(String roomID, long deviceID);
+    boolean closeOrderFromControlling(String roomID);
 
     void controllingDeviceLogout(long deviceID);
 
     void controlledDeviceLogout(long deviceID);
+
+    HistoryOrders getHistoryOrders(int index, int limit);
 }

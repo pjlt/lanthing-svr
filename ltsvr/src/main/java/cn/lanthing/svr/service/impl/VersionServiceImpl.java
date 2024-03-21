@@ -32,7 +32,6 @@
 package cn.lanthing.svr.service.impl;
 
 import cn.lanthing.svr.service.VersionService;
-import cn.lanthing.utils.AutoReentrantLock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +53,7 @@ public class VersionServiceImpl implements VersionService {
 
     record VersionFile(List<Version> versions) {}
 
-    private final AutoReentrantLock lock = new AutoReentrantLock();
+    private final Object flock = new Object();
 
     @Value("${version.file}")
     private String versionFileName;
@@ -84,15 +83,15 @@ public class VersionServiceImpl implements VersionService {
             log.error("Read version from {} success but 'versions' is empty", versionFileName);
             return;
         }
-        try (var lk = lock.lockAsResource()) {
+        synchronized (flock) {
             this.versionFile = newVersionFile;
         }
     }
 
     @Override
     public Version getNewVersionPC(int clientMajor, int clientMinor, int clientPatch) {
-        VersionFile vf = null;
-        try (var lk = lock.lockAsResource()) {
+        VersionFile vf;
+        synchronized (flock) {
             vf = this.versionFile;
         }
         if (vf == null || CollectionUtils.isEmpty(vf.versions())) {

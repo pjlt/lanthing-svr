@@ -1,0 +1,30 @@
+<configuration>
+    <springProperty scope="context" name="LOG_PATH" source="log.path"/>
+    <springProperty scope="context" name="LOG_PREFIX" source="log.prefix"/>
+    <springProperty scope="context" name="LOG_FORMAT" source="log.format"/>
+    <springProperty scope="context" name="LOG_RESERVE_DAYS" source="log.reserve-days"/>
+    <springProperty scope="context" name="LOG_LEVEL" source="log.level"/>
+
+    <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${LOG_PREFIX}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${LOG_PREFIX}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>${LOG_RESERVE_DAYS}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_FORMAT}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_FORMAT}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="cn.springframework" level="WARN"/>
+    <root level="${LOG_LEVEL}">
+        <appender-ref ref="FILE_APPENDER" />
+        <appender-ref ref="CONSOLE_APPENDER" />
+    </root>
+</configuration>

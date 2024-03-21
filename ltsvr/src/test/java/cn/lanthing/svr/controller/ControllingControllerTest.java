@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,28 +29,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.service;
+package cn.lanthing.svr.controller;
 
-public interface ControlledDeviceService {
+import org.springframework.boot.test.context.SpringBootTest;
 
-    class Session {
-        public long connectionID;
-        public long deviceID;
-        public int version;
-        public Session(long conn, long dev, int ver) {
-            connectionID = conn;
-            deviceID = dev;
-            version = ver;
-        }
-    }
-
-    void addSession(long connectionID);
-
-    Long removeSession(long connectionID);
-
-    boolean loginDevice(long connectionID, long deviceID, boolean allowControl, int version);
-
-    Long getConnectionIDByDeviceID(long deviceID);
-
-    Session getSessionByConnectionID(long connectionID);
+@SpringBootTest
+public class ControllingControllerTest {
 }
