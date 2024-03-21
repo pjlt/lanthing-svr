@@ -132,4 +132,10 @@ public class ControlledSessionServiceImpl implements ControlledSessionService {
     public synchronized int getSessionCount() {
         return connIDToSessionMap.size();
     }
+
+    @Override
+    public synchronized void clearForTest() {
+        connIDToSessionMap.clear();
+        deviceIDToConnIDMap.clear();
+    }
 }

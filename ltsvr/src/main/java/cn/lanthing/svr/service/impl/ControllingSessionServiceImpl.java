@@ -32,11 +32,13 @@
 package cn.lanthing.svr.service.impl;
 
 import cn.lanthing.svr.service.ControllingSessionService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class ControllingSessionServiceImpl implements ControllingSessionService {
 
@@ -52,9 +54,9 @@ public class ControllingSessionServiceImpl implements ControllingSessionService 
 
         private long deviceID = 0;
 
-        private String sessionID;
-
         private int version = 0;
+
+        private String os = "";
 
         private ControllingSessionServiceImpl.Status status;
 
@@ -92,15 +94,18 @@ public class ControllingSessionServiceImpl implements ControllingSessionService 
 
         var session = connIDToSessionMap.get(connectionID);
         if (session == null) {
+            log.error("LoginDevice failed, get session by connection id failed");
             return false;
         }
         if (session.status != Status.Connected) {
             //已有设备登录或已断开
+            log.error("LoginDevice failed, session.status != Connected");
             return false;
         }
         session.deviceID = deviceID;
         session.status = Status.DeviceLogged;
         session.version = version;
+        session.os = os;
         deviceIDToConnIDMap.put(deviceID, connectionID);
         return true;
 
@@ -109,7 +114,7 @@ public class ControllingSessionServiceImpl implements ControllingSessionService 
     @Override
     public synchronized Session getSessionByConnectionID(long connectionID) {
         var session = connIDToSessionMap.get(connectionID);
-        return session == null ? null : new Session(session.connectionID, session.deviceID, session.version);
+        return session == null ? null : new Session(session.connectionID, session.deviceID, session.version, session.os);
     }
 
     @Override
@@ -120,5 +125,11 @@ public class ControllingSessionServiceImpl implements ControllingSessionService 
     @Override
     public synchronized int getSessionCount() {
         return connIDToSessionMap.size();
+    }
+
+    @Override
+    public synchronized void clearForTest() {
+        connIDToSessionMap.clear();
+        deviceIDToConnIDMap.clear();
     }
 }

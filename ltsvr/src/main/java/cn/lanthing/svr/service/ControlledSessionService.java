@@ -46,4 +46,6 @@ public interface ControlledSessionService {
     Session getSessionByConnectionID(long connectionID);
 
     int getSessionCount();
+
+    void clearForTest();
 }
