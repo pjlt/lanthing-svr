@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,22 +31,14 @@
 
 package cn.lanthing.svr.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-public interface VersionService {
-    record Version (
-        int major,
-        int minor,
-        int patch,
-        long timestamp,
-        boolean force,
-        String url,
-        List<String> features,
-        List<String> bugfix)
-    {}
+public interface OnlineStatisticService {
 
-    void reloadVersionsFile();
-    Version getNewVersionPC(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionAndroid(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionIOS(int clientMajor, int clientMinor, int clientPatch);
+    record OnlineHistory(int id, LocalDateTime time, int controlling, int controlled) {}
+
+    void record();
+
+    List<OnlineHistory> query(int index, int limit);
 }

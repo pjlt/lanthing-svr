@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,24 +29,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.service;
+package cn.lanthing.svr.model
 
-import java.util.List;
+import org.ktorm.entity.Entity
+import org.ktorm.schema.Table
+import org.ktorm.schema.datetime
+import org.ktorm.schema.int
+import java.time.LocalDateTime
 
-public interface VersionService {
-    record Version (
-        int major,
-        int minor,
-        int patch,
-        long timestamp,
-        boolean force,
-        String url,
-        List<String> features,
-        List<String> bugfix)
-    {}
+interface Online : Entity<Online> {
+    companion object : Entity.Factory<Online>()
+    var id: Int
+    var createdAt: LocalDateTime
+    var controlling: Int
+    var controlled: Int
+}
 
-    void reloadVersionsFile();
-    Version getNewVersionPC(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionAndroid(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionIOS(int clientMajor, int clientMinor, int clientPatch);
+object Onlines : Table<Online>("onlines") {
+    val id = int("id").primaryKey().bindTo { it.id }
+    val createdAt = datetime("createdAt").bindTo { it.createdAt }
+    var controlling = int("controlling").bindTo { it.controlling }
+    var controlled = int("controlled").bindTo { it.controlled }
 }

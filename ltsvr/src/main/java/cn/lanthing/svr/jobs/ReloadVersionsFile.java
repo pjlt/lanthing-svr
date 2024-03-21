@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,24 +29,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.service;
+package cn.lanthing.svr.jobs;
 
-import java.util.List;
+import cn.lanthing.svr.service.VersionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
-public interface VersionService {
-    record Version (
-        int major,
-        int minor,
-        int patch,
-        long timestamp,
-        boolean force,
-        String url,
-        List<String> features,
-        List<String> bugfix)
-    {}
+import java.util.concurrent.TimeUnit;
 
-    void reloadVersionsFile();
-    Version getNewVersionPC(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionAndroid(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionIOS(int clientMajor, int clientMinor, int clientPatch);
+@Component
+@EnableScheduling
+public class ReloadVersionsFile {
+
+    @Autowired
+    private VersionService versionService;
+
+    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES)
+    public void reloadFile() {
+        versionService.reloadVersionsFile();
+    }
 }

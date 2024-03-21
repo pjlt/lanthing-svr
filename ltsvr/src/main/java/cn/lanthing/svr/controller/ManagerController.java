@@ -31,14 +31,13 @@
 
 package cn.lanthing.svr.controller;
 
-import cn.lanthing.svr.service.ControlledSessionService;
-import cn.lanthing.svr.service.ControllingSessionService;
-import cn.lanthing.svr.service.DeviceIDService;
-import cn.lanthing.svr.service.OrderService;
+import cn.lanthing.svr.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 
 @RestController
@@ -66,6 +65,9 @@ public class ManagerController {
     @Autowired
     private ControllingSessionService controllingSessionService;
 
+    @Autowired
+    private OnlineStatisticService onlineStatisticService;
+
     @GetMapping("/mgr/devices")
     public JsonResult<Devices> devices() {
         var stat = deviceIDService.getDeviceIDStat();
@@ -74,6 +76,12 @@ public class ManagerController {
         return new JsonResult<>(
                 0, "ok", new Devices(stat.usedCount(), stat.unUsedCount(), stat.usedCount() + stat.unUsedCount(),
                         new OnlineDevices(controllingCount, controlledCount, controlledCount + controllingCount)));
+    }
+
+    @GetMapping("/mgr/devices/online")
+    public JsonResult<List<OnlineStatisticService.OnlineHistory>> onlineHistory(@RequestParam("index") int index , @RequestParam("limit") int limit) {
+        limit = Math.min(144, limit);
+        return new JsonResult<>(0, "ok", onlineStatisticService.query(index, limit));
     }
 
     @GetMapping("/mgr/orders")

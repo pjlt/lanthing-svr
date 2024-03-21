@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,24 +29,47 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.service;
+package cn.lanthing.svr.service.impl;
+
+import cn.lanthing.svr.dao.OnlineDao;
+import cn.lanthing.svr.service.ControlledSessionService;
+import cn.lanthing.svr.service.ControllingSessionService;
+import cn.lanthing.svr.service.OnlineStatisticService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-public interface VersionService {
-    record Version (
-        int major,
-        int minor,
-        int patch,
-        long timestamp,
-        boolean force,
-        String url,
-        List<String> features,
-        List<String> bugfix)
-    {}
+@Service
+public class OnlineStatisticServiceImpl implements OnlineStatisticService {
 
-    void reloadVersionsFile();
-    Version getNewVersionPC(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionAndroid(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionIOS(int clientMajor, int clientMinor, int clientPatch);
+    @Autowired
+    private ControlledSessionService controlledSessionService;
+
+    @Autowired
+    private ControllingSessionService controllingSessionService;
+
+    @Autowired
+    private OnlineDao onlineDao;
+
+    @Override
+    public void record() {
+        int controllingDevices = controllingSessionService.getSessionCount();
+        int controlledDevices = controlledSessionService.getSessionCount();
+        onlineDao.insertRecord(controllingDevices, controlledDevices);
+    }
+
+    @Override
+    public List<OnlineHistory> query(int index, int limit) {
+        return onlineDao
+                .queryOnlineHistory(index, limit)
+                .stream()
+                .map(record ->
+                        new OnlineHistory(
+                                record.getId(),
+                                record.getCreatedAt(),
+                                record.getControlling(),
+                                record.getControlled()))
+                .toList();
+    }
 }

@@ -1,7 +1,7 @@
 /*
  * BSD 3-Clause License
  *
- * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ * Copyright (c) 2024 Zhennan Tu <zhennan.tu@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,24 +29,51 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.service;
+package cn.lanthing.svr.dao
 
-import java.util.List;
+import cn.lanthing.svr.model.Online
+import cn.lanthing.svr.model.Onlines
+import jakarta.annotation.PostConstruct
+import org.ktorm.database.Database
+import org.ktorm.dsl.*
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Component
 
-public interface VersionService {
-    record Version (
-        int major,
-        int minor,
-        int patch,
-        long timestamp,
-        boolean force,
-        String url,
-        List<String> features,
-        List<String> bugfix)
-    {}
+@Component
+class OnlineDao {
 
-    void reloadVersionsFile();
-    Version getNewVersionPC(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionAndroid(int clientMajor, int clientMinor, int clientPatch);
-    Version getNewVersionIOS(int clientMajor, int clientMinor, int clientPatch);
+    @Autowired
+    private lateinit var database: Database
+
+    @PostConstruct
+    fun init() {
+        database.useConnection { conn ->
+            conn.createStatement().execute("""
+                CREATE TABLE IF NOT EXISTS "onlines" (
+                	"id"				INTEGER NOT NULL UNIQUE,
+                	"createdAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                	"controlling"		INTEGER NOT NULL,
+                	"controlled"		INTEGER NOT NULL,
+                	PRIMARY KEY("id" AUTOINCREMENT)
+                );
+            """.trimIndent())
+        }
+    }
+
+    fun queryOnlineHistory(index: Int, limit: Int) : List<Online> {
+        return database
+            .from(Onlines)
+            .select()
+            .orderBy(Onlines.id.desc())
+            .limit(limit)
+            .offset(index)
+            .map { row -> Onlines.createEntity(row) }
+    }
+
+    fun insertRecord(controlling: Int, controlled: Int) {
+        database.insert(Onlines) {
+            set(it.controlling, controlling)
+            set(it.controlled, controlled)
+        }
+    }
 }

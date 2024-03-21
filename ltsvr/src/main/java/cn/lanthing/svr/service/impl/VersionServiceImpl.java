@@ -33,21 +33,16 @@ package cn.lanthing.svr.service.impl;
 
 import cn.lanthing.svr.service.VersionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
-@EnableScheduling
 @Slf4j
 public class VersionServiceImpl implements VersionService {
 
@@ -60,13 +55,7 @@ public class VersionServiceImpl implements VersionService {
 
     private VersionFile versionFile;
 
-    @PostConstruct
-    public void init() {
-        reloadVersionFile();
-    }
-
-    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES)
-    public void reloadVersionFile() {
+    public void reloadVersionsFile() {
         ObjectMapper om = new ObjectMapper();
         VersionFile newVersionFile;
         try {
