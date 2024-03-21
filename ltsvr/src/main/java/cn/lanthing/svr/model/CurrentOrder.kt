@@ -48,7 +48,7 @@ interface CurrentOrder : Entity<CurrentOrder> {
 }
 
 
-object CurrentOrders : Table<CurrentOrder>("order_status") {
+object CurrentOrders : Table<CurrentOrder>("current_orders") {
     val id = int("id").primaryKey().bindTo { it.id }
     val createdAt = datetime("createdAt").bindTo { it.createdAt }
     val fromDeviceID = int("fromDeviceID").bindTo { it.fromDeviceID }

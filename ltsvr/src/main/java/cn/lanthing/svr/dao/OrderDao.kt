@@ -141,7 +141,7 @@ class OrderDao {
         val result = database
             .from(Orders)
             .select(count())
-            .map { it.getInt(0) }
+            .map { it.getInt(1) }
         return if (result.isEmpty()) {
             0
         } else {

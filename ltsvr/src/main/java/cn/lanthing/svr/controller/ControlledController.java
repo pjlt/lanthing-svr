@@ -150,7 +150,7 @@ public class ControlledController {
         ack.setDeviceId(session.deviceID());
         if (msg.getErrCode() != ErrorCodeOuterClass.ErrorCode.Success) {
             ack.setErrCode(msg.getErrCode()).setRequestId(order.getClientRequestID());
-            boolean success = orderService.closeOrderFromControlled(order.getRoomID(), order.getToDeviceID());
+            boolean success = orderService.closeOrderFromControlled(order.getRoomID());
             if (success) {
                 log.info("OpenConnectionAck(connectionID:{}, deviceID:{}, fromConnectionID:{}, fromDeviceID:{}, roomID:{}) received error code {}, close order success",
                         connectionID, session.deviceID(), controllingConnectionID, order.getFromDeviceID(), order.getRoomID(), msg.getErrCode());
@@ -186,7 +186,7 @@ public class ControlledController {
             log.error("CloseConnection(connectionID:{}, roomID:{}) get session by connectionID failed", connectionID, msg.getRoomId());
             return null;
         }
-        boolean success = orderService.closeOrderFromControlled(msg.getRoomId(), session.deviceID());
+        boolean success = orderService.closeOrderFromControlled(msg.getRoomId());
         if (success) {
             log.info("CloseConnection(connectionID:{}, roomID:{}) close order success", connectionID, msg.getRoomId());
         } else {

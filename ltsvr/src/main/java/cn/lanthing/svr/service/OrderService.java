@@ -65,10 +65,6 @@ public interface OrderService {
                     order.getToDeviceID()
             );
         }
-        void f() {
-            var d = Duration.between(start, finish);
-
-        }
     }
 
     record OrderInfo(
@@ -92,9 +88,9 @@ public interface OrderService {
 
     Order getOrderByControlledDeviceID(long deviceID);
 
-    boolean closeOrderFromControlled(String roomID, long deviceID);
+    boolean closeOrderFromControlled(String roomID);
 
-    boolean closeOrderFromControlling(String roomID, long deviceID);
+    boolean closeOrderFromControlling(String roomID);
 
     void controllingDeviceLogout(long deviceID);
 

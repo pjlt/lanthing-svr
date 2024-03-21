@@ -261,7 +261,7 @@ public class ControllingController {
             log.error("CloseConnection(connectionID:{}, roomID:{}) get session by connectionID failed", connectionID, msg.getRoomId());
             return null;
         }
-        boolean success = orderService.closeOrderFromControlling(msg.getRoomId(), session.deviceID());
+        boolean success = orderService.closeOrderFromControlling(msg.getRoomId());
         if (success) {
             log.info("CloseConnection(connectionID:{}, roomID:{}) close order success", connectionID, msg.getRoomId());
         } else {

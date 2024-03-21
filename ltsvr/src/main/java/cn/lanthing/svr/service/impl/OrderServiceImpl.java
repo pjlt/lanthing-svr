@@ -116,7 +116,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public boolean closeOrderFromControlled(String roomID, long deviceID) {
+    public boolean closeOrderFromControlled(String roomID) {
         final String reason = "controlled_close";
         currentOrderDao.deleteOrder(roomID);
         boolean success = orderDao.markOrderFinishedWithReason(roomID, reason);
@@ -125,7 +125,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public boolean closeOrderFromControlling(String roomID, long deviceID) {
+    public boolean closeOrderFromControlling(String roomID) {
         final String reason = "controlling_close";
         currentOrderDao.deleteOrder(roomID);
         boolean success = orderDao.markOrderFinishedWithReason(roomID, reason);
