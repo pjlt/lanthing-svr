@@ -47,8 +47,8 @@ class UsedIDDao {
 
     @PostConstruct
     fun init() {
-        val c = database.useConnection { conn ->
-            conn.prepareStatement("""
+        database.useConnection { conn ->
+            conn.createStatement().execute("""
                 CREATE TABLE IF NOT EXISTS used_device_ids2 (
                 	"id"	        INTEGER NOT NULL UNIQUE,
                 	"createdAt"	    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -65,7 +65,6 @@ class UsedIDDao {
                 END;
             """.trimIndent())
         }
-        c.execute()
     }
 
     fun queryByDeviceID(deviceID: Long): UsedID? {
@@ -100,7 +99,7 @@ class UsedIDDao {
         val result = database
             .from(UsedIDs)
             .select(count())
-            .map { it.getInt(0) }
+            .map { it.getInt(1) }
         return if (result.isEmpty()) {
             0
         } else {

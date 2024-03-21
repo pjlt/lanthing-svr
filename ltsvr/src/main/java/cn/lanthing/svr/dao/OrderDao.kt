@@ -47,8 +47,8 @@ class OrderDao {
 
     @PostConstruct
     fun init() {
-        val c = database.useConnection { conn ->
-            conn.prepareStatement("""
+        database.useConnection { conn ->
+            conn.createStatement().execute("""
                 CREATE TABLE IF NOT EXISTS "orders" (
                 	"id"				INTEGER NOT NULL UNIQUE,
                 	"createdAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -81,7 +81,6 @@ class OrderDao {
                 CREATE UNIQUE INDEX IF NOT EXISTS "idx_orders_roomid" ON "orders" ("roomID");
             """.trimIndent())
         }
-        c.execute()
     }
 
     fun queryOrderByRoomID(roomID: String) : Order? {

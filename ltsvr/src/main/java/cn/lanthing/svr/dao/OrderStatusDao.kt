@@ -47,8 +47,8 @@ class CurrentOrderDao {
 
     @PostConstruct
     fun init() {
-        val c = database.useConnection { conn ->
-            conn.prepareStatement("""
+       database.useConnection { conn ->
+            conn.createStatement().execute("""
                 CREATE TABLE IF NOT EXISTS "current_orders" (
                 	"id"				INTEGER NOT NULL UNIQUE,
                 	"createdAt"			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -59,7 +59,6 @@ class CurrentOrderDao {
                 );
             """.trimIndent())
         }
-        c.execute()
     }
 
     fun insertOrder(info: OrderInfo) : Boolean {

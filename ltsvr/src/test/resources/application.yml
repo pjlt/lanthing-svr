@@ -18,11 +18,11 @@ log:
   level: INFO
 
 controlled-socket-svr:
-  port: 4567
+  port: 0
   ip: "0.0.0.0"
 
 controlling-socket-svr:
-  port: 9876
+  port: 0
   ip: "0.0.0.0"
 
 

@@ -105,7 +105,7 @@ public class DeviceIDServiceTest {
         deviceIDService.updateCookie(deviceID, newCookie);
         var usedID = deviceIDService.getUsedDeviceID(deviceID);
         Assertions.assertNotSame(newID.cookie(), usedID.getCookie());
-        Assertions.assertSame(newCookie, usedID.getCookie());
+        Assertions.assertEquals(newCookie, usedID.getCookie());
     }
 
     @Test
