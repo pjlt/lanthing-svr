@@ -2,6 +2,9 @@ jdbc:
   url: jdbc:sqlite:/path/to/sqlite.db
   driver-class-name: org.sqlite.JDBC
 
+server:
+  port: 9090
+
 server-address:
   relays:
     - "relay:111.111.111.111:1234:user1:passwd1"

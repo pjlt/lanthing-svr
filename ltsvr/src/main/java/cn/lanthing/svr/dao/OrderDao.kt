@@ -39,6 +39,8 @@ import org.ktorm.database.Database
 import org.ktorm.dsl.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Component
 class OrderDao {
@@ -130,6 +132,7 @@ class OrderDao {
     fun markOrderFinishedWithReason(roomID: String, reason: String) : Boolean {
         val count = database.update(Orders) {
             set(it.finishReason, reason)
+            set(it.finishedAt, LocalDateTime.now(ZoneId.of("UTC")))
             where {
                 (it.roomID eq roomID) and (it.finishReason.isNull())
             }

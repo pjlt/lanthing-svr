@@ -183,6 +183,8 @@ public class OrderServiceTest {
         var history = orderService.getHistoryOrders(0, 20);
         Assertions.assertEquals(4, history.total());
         Assertions.assertEquals(4, history.orders().size());
+        Assertions.assertNull(history.orders().get(0).finishReason());
+        Assertions.assertNotNull(history.orders().get(1).finishReason());
         var history2 = orderService.getHistoryOrders(1, 20);
         Assertions.assertEquals(4, history2.total());
         Assertions.assertEquals(3, history2.orders().size());

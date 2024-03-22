@@ -35,6 +35,8 @@ import cn.lanthing.svr.model.Order;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -52,14 +54,14 @@ public interface OrderService {
         public static BasicOrderInfo createFrom(Order order) {
             var finishAt = order.getFinishedAt();
             if (finishAt == null) {
-                finishAt = LocalDateTime.now();
+                finishAt = LocalDateTime.now(ZoneId.of("UTC"));
             }
             var duration = Duration.between(order.getCreatedAt(), finishAt);
             return new BasicOrderInfo(
                     order.getId(),
                     order.getCreatedAt(),
-                    order.getFinishedAt(),
-                    String.format("%d:%02d:%02d", duration.toHoursPart(), duration.toMillisPart(), duration.toSecondsPart()),
+                    order.getFinishedAt() == null ? null : order.getFinishedAt().truncatedTo(ChronoUnit.SECONDS),
+                    String.format("%d:%02d:%02d", duration.toHoursPart(), duration.toMinutesPart(), duration.toSecondsPart()),
                     order.getFinishReason(),
                     order.getFromDeviceID(),
                     order.getToDeviceID()

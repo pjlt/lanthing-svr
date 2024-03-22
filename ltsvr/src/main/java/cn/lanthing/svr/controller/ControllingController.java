@@ -131,7 +131,7 @@ public class ControllingController {
         UsedID usedID = deviceIDService.getUsedDeviceID(msg.getDeviceId());
         if (usedID == null) {
             // 不认识该ID，为客户端分配新ID
-            log.warn("LoginDevice(connectionID:{}, deviceID:{}) failed: DeviceID valid, try allocate new deviceID", connectionID, msg.getDeviceId());
+            log.warn("LoginDevice(connectionID:{}, deviceID:{}) failed: DeviceID invalid, try allocate new deviceID", connectionID, msg.getDeviceId());
             var newID = deviceIDService.allocateDeviceID();
             if (newID == null) {
                 log.error("Allocate new deviceID for connection(connectionID:{}, old deviceID:{}) failed", connectionID, msg.getDeviceId());
@@ -150,7 +150,7 @@ public class ControllingController {
             var newID = deviceIDService.allocateDeviceID();
             if (newID == null) {
                 log.error("Allocate new deviceID for connection(connectionID:{}, old deviceID:{}) failed", connectionID, msg.getDeviceId());
-                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
+                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie);
                 return new LtMessage(LtProto.LoginUserAck.ID, ack.build());
             }
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
