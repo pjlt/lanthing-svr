@@ -144,19 +144,24 @@ public class ControllingController {
                     .setNewCookie(newID.cookie());
             return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
         }
-        if (msg.getCookie().isEmpty() || !msg.getCookie().equals(usedID.getCookie())) {
-            // cookie不对，分配新ID
-            log.warn("LoginDevice(connectionID:{}, deviceID:{}) with invalid cookie, try allocate new deviceID", connectionID, msg.getDeviceId());
-            var newID = deviceIDService.allocateDeviceID();
-            if (newID == null) {
-                log.error("Allocate new deviceID for connection(connectionID:{}, old deviceID:{}) failed", connectionID, msg.getDeviceId());
-                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie);
-                return new LtMessage(LtProto.LoginUserAck.ID, ack.build());
+        if (!msg.getCookie().isEmpty()) {
+            if (!msg.getCookie().equals(usedID.getCookie())) {
+                // cookie不对，分配新ID
+                log.warn("LoginDevice(connectionID:{}, deviceID:{}) with invalid cookie, try allocate new deviceID", connectionID, msg.getDeviceId());
+                var newID = deviceIDService.allocateDeviceID();
+                if (newID == null) {
+                    log.error("Allocate new deviceID for connection(connectionID:{}, old deviceID:{}) failed", connectionID, msg.getDeviceId());
+                    ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie);
+                    return new LtMessage(LtProto.LoginUserAck.ID, ack.build());
+                }
+                ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
+                        .setNewDeviceId(newID.deviceID())
+                        .setNewCookie(newID.cookie());
+                return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
             }
-            ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie)
-                    .setNewDeviceId(newID.deviceID())
-                    .setNewCookie(newID.cookie());
-            return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
+        } else {
+            // 发上来的cookie为空，为了兼容以前的客户端，暂时不处理，等旧版本客户端都没了就当作错误处理
+            ack.setNewCookie(usedID.getCookie());
         }
 
         var expiredAt = new Date((usedID.getUpdatedAt().toEpochSecond(ZoneOffset.UTC) + 60 * 60 * 24 * 7) * 1000);
