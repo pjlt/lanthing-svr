@@ -3,6 +3,25 @@
     {
       "major": 0,
       "minor": 3,
+      "patch": 8,
+      "timestamp": 1711336883,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.8",
+      "features": [
+        "支持最大码率设置（被控端设置生效）",
+        "优化中继场景的帧率控制",
+        "提升P2P成功率（v0.3.7）"
+      ],
+      "bugfix": [
+        "修复无法操作Windows登录界面的问题",
+        "修复一处可能引起30005错误码的问题",
+        "修复若干闪退问题",
+        "修复某些网络环境下串流闪退的问题（v0.3.7）",
+        "修复无声卡环境串流失败问题（v0.3.6）"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 3,
       "patch": 5,
       "timestamp": 1710799727,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.5",
