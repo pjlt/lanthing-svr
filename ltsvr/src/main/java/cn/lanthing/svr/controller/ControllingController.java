@@ -214,7 +214,7 @@ public class ControllingController {
                     .setRequestId(msg.getRequestId());
             return new LtMessage(LtProto.RequestConnectionAck.ID, ack.build());
         } else {
-            log.info("Handle RequestConnection(connectionID:{}, peer connectionID:{}, toDeviceID:{}", connectionID, controlledSession.connectionID(), peerDeviceID);
+            log.info("Handle RequestConnection(connectionID:{}, peer connectionID:{}, toDeviceID:{})", connectionID, controlledSession.connectionID(), peerDeviceID);
         }
         var controllingSession = controllingSessionService.getSessionByConnectionID(connectionID);
         if (controllingSession == null || controllingSession.deviceID() == 0) {

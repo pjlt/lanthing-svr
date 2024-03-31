@@ -123,7 +123,7 @@ public class ControlledController {
             log.info("LoginDevice(connectionID:{}, deviceID:{}) failed", connectionID, msg.getDeviceId());
         } else {
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.Success);
-            log.info("LoginDevice(connectionID:{}, deviceID:{}) success)", connectionID, msg.getDeviceId());
+            log.info("LoginDevice(connectionID:{}, deviceID:{}) success", connectionID, msg.getDeviceId());
         }
         return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
     }
