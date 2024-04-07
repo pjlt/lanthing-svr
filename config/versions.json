@@ -3,6 +3,21 @@
     {
       "major": 0,
       "minor": 3,
+      "patch": 9,
+      "timestamp": 1712456131,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.9",
+      "features": [
+        "共享剪切板（文本和文件）",
+        "支持左右声道",
+        "优化安卓鼠标控制"
+      ],
+      "bugfix": [
+        "修复若干闪退问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 3,
       "patch": 8,
       "timestamp": 1711336883,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.8",
