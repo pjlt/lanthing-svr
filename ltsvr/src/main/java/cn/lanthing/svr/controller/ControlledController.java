@@ -101,6 +101,13 @@ public class ControlledController {
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
         //注意与ControllingController的区别
         log.info("Handle LoginDevice(connectionID:{}, deviceID:{})", connectionID, msg.getDeviceId());
+        var someCondition = false;
+        if (someCondition) {
+            var redirect = RedirectServerAddressProto.RedirectServerAddress.newBuilder();
+            redirect.setHost("somehost");
+            redirect.setPort(1234);
+            return new LtMessage(LtProto.RedirectServerAddress.ID, redirect.build());
+        }
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
         UsedID usedID = deviceIDService.getUsedDeviceID(msg.getDeviceId());
         if (usedID == null) {
