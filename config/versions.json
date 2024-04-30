@@ -3,6 +3,22 @@
     {
       "major": 0,
       "minor": 3,
+      "patch": 10,
+      "timestamp": 1714315652,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.10",
+      "features": [
+        "允许自定义默认鼠标模式",
+        "优化安卓物理鼠标体验"
+      ],
+      "bugfix": [
+        "修复长按键盘无法促发重复按键的问题",
+        "修复二次远程粘贴文件失败问题",
+        "修复若干崩溃问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 3,
       "patch": 9,
       "timestamp": 1712456131,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.3.9",
