@@ -34,7 +34,9 @@ package cn.lanthing.svr.service.impl;
 import cn.lanthing.svr.service.RedirectService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
+@Service
 public class RedirectServiceImpl implements RedirectService {
 
     @Value("${redirect.controlled.host:#{null}}")
