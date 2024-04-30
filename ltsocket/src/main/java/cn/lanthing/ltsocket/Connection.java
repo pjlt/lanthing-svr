@@ -43,7 +43,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
- class Connection extends ChannelInboundHandlerAdapter {
+public class Connection extends ChannelInboundHandlerAdapter {
     public enum Status {
         Closed,
         Connected,
