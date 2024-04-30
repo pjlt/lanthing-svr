@@ -78,6 +78,9 @@ public class ControllingController {
     @Autowired
     private VersionService versionService;
 
+    @Autowired
+    private RedirectService redirectService;
+
     @ConnectionEvent(type = ConnectionEventType.Connected)
     public void onConnectionConnected(long connectionID) {
         log.info("Accepted new connection({})", connectionID);
@@ -126,12 +129,14 @@ public class ControllingController {
     @MessageMapping(proto = LtProto.LoginDevice)
     public LtMessage handleLoginDevice(long connectionID, LoginDeviceProto.LoginDevice msg) {
         //注意与ControlledController的区别
-        log.info("Handle LoginDevice(connectionID:{}, deviceID:{})", connectionID, msg.getDeviceId());
-        var someCondition = false;
-        if (someCondition) {
+        log.info("Handle LoginDevice(connectionID:{}, deviceID:{}, version:v{}.{}.{})",
+                connectionID, msg.getDeviceId(), msg.getVersionMajor(), msg.getVersionMinor(), msg.getVersionPatch());
+        int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();
+        var redirectedAddress = redirectService.redirectControlling(connectionID, versionNum);
+        if (redirectedAddress != null) {
             var redirect = RedirectServerAddressProto.RedirectServerAddress.newBuilder();
-            redirect.setHost("somehost");
-            redirect.setPort(1234);
+            redirect.setHost(redirectedAddress.host());
+            redirect.setPort(redirectedAddress.port());
             return new LtMessage(LtProto.RedirectServerAddress.ID, redirect.build());
         }
         var ack = LoginDeviceAckProto.LoginDeviceAck.newBuilder();
@@ -180,7 +185,6 @@ public class ControllingController {
             ack.setNewCookie(usedID.getCookie());
         }
         // 走到这里，说明id和cookie都对了
-        int versionNum = msg.getVersionMajor() * 1_000_000 + msg.getVersionMinor() * 1_000 + msg.getVersionPatch();
         boolean success = controllingSessionService.loginDevice(connectionID, msg.getDeviceId(), versionNum, msg.getOsType().toString());
         if (!success) {
             // 失败暂时有两种可能
