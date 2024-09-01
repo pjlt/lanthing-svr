@@ -36,7 +36,7 @@
         <reflections.version>0.10.2</reflections.version>
         <xolstice-maven-protobuf.version>0.6.1</xolstice-maven-protobuf.version>
         <motd-os-maven.version>1.7.1</motd-os-maven.version>
-        <kotlin.version>1.9.23</kotlin.version>
+        <kotlin.version>2.0.20</kotlin.version>
         <ktorm.version>4.1.0</ktorm.version>
     </properties>
 
