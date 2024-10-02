@@ -2,6 +2,22 @@
   "versions": [
     {
       "major": 0,
+      "minor": 4,
+      "patch": 0,
+      "timestamp": 1727849472,
+      "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.4.0",
+      "features": [
+        "macOS版(arm64，未签名)",
+        "优化鼠标体验",
+        "保存最后一次连接的验证码",
+        "允许手动刷新验证码"
+      ],
+      "bugfix": [
+        "修复若干崩溃问题"
+      ]
+    },
+    {
+      "major": 0,
       "minor": 3,
       "patch": 10,
       "timestamp": 1714315652,
