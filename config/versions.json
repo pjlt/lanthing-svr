@@ -3,6 +3,20 @@
     {
       "major": 0,
       "minor": 4,
+      "patch": 1,
+      "timestamp": 1727938489,
+      "url": "https://github.com/pjlt/lanthing-pc/releases",
+      "features": [
+        "安卓串流跟随重力感应旋转屏幕"
+      ],
+      "bugfix": [
+        "修复某些Windows环境下无法打开程序的问题",
+        "修复安卓下无法使用物理鼠标的问题"
+      ]
+    },
+    {
+      "major": 0,
+      "minor": 4,
       "patch": 0,
       "timestamp": 1727849472,
       "url": "https://github.com/pjlt/lanthing-pc/releases/tag/v0.4.0",
