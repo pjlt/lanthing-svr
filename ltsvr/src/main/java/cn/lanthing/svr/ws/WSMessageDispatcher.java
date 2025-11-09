@@ -1,0 +1,244 @@
+/*
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2025 Zhennan Tu <zhennan.tu@gmail.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package cn.lanthing.svr.ws;
+
+import cn.lanthing.codec.LtMessage;
+import cn.lanthing.ltsocket.ConnectionEvent;
+import cn.lanthing.ltsocket.ConnectionEventType;
+import cn.lanthing.ltsocket.MessageMapping;
+import com.google.protobuf.Message;
+import io.netty.buffer.Unpooled;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.socket.BinaryMessage;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.AbstractWebSocketHandler;
+
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+
+@Slf4j
+public class WSMessageDispatcher extends AbstractWebSocketHandler {
+
+    record GeneralHandler(Method method, Object object) {}
+
+    private final ExecutorService executorService = Executors.newWorkStealingPool();
+
+    private static final AtomicLong counter;
+    static {
+        counter = new AtomicLong(0);
+    }
+
+    final private ConcurrentHashMap<String, Long> sessionIDs = new ConcurrentHashMap<>();
+
+    private final Map<Long, GeneralHandler> messageHandlers = new HashMap<>();
+
+    private final Map<ConnectionEventType, GeneralHandler> sessionEventHandlers = new HashMap<>();
+
+    public WSMessageDispatcher(Class<?> controllerClass, ApplicationContext applicationContext) throws Exception {
+        init(controllerClass, applicationContext);
+    }
+
+    private void init(Class<?> controller, ApplicationContext applicationContext) throws Exception {
+        Object controllerObject;
+        try {
+            controllerObject = applicationContext.getBean(controller);
+        } catch (BeansException be) {
+            return;
+        }
+        var methods = controller.getMethods();
+        for (var method : methods) {
+            var annotations = method.getAnnotations();
+            for (var annotation : annotations) {
+                if (MessageMapping.class.isAssignableFrom(annotation.getClass())) {
+                    if (!method.getReturnType().isAssignableFrom(LtMessage.class)) {
+                        throw new Exception("Wrong usage of @MessageMapping: return type isn't LtMessage");
+                    }
+                    var paramsType = method.getParameterTypes();
+                    if (paramsType.length < 2) {
+                        throw new Exception("Wrong usage of @MessageMapping");
+                    }
+                    MessageMapping messageMapping = method.getAnnotation(MessageMapping.class);
+                    if (paramsType[0].getName().equals("long") && Message.class.isAssignableFrom(paramsType[1])) {
+                        messageHandlers.put(messageMapping.proto().ID, new GeneralHandler(method, controllerObject));
+                        log.info("Mapping message({}) to handler {}", messageMapping.proto().ID, method.getName());
+                    } else {
+                        throw new Exception("Wrong usage of @MessageMapping");
+                    }
+                }else if (ConnectionEvent.class.isAssignableFrom(annotation.getClass())) {
+                    ConnectionEvent connectionEvent = method.getAnnotation(ConnectionEvent.class);
+                    var paramsType = method.getParameterTypes();
+                    if (paramsType.length != 1) {
+                        throw new Exception("Wrong usage of @SessionEvent");
+                    }
+                    if (paramsType[0].getName().equals("long")) {
+                        boolean added = true;
+                        switch (connectionEvent.type()) {
+                            case Closed:
+                                if (sessionEventHandlers.containsKey(ConnectionEventType.Closed)) {
+                                    throw new Exception("Duplicated handler " + ConnectionEventType.Closed);
+                                }
+                                sessionEventHandlers.put(ConnectionEventType.Closed, new GeneralHandler(method, controllerObject));
+                                break;
+                            case UnexpectedlyClosed:
+                                if (sessionEventHandlers.containsKey(ConnectionEventType.UnexpectedlyClosed)) {
+                                    throw new Exception("Duplicated handler " + ConnectionEventType.Closed);
+                                }
+                                sessionEventHandlers.put(ConnectionEventType.UnexpectedlyClosed, new GeneralHandler(method, controllerObject));
+                                break;
+                            case Connected:
+                                if (sessionEventHandlers.containsKey(ConnectionEventType.Connected)) {
+                                    throw new Exception("Duplicated handler " + ConnectionEventType.Connected);
+                                }
+                                sessionEventHandlers.put(ConnectionEventType.Connected, new GeneralHandler(method, controllerObject));
+                                break;
+                            default:
+                                added = false;
+                                break;
+                        }
+                        if (added) {
+                            log.info("Mapping connection event({}) to handler {}", connectionEvent.type(), method.getName());
+                        }
+                    } else {
+                        throw new Exception("Wrong usage of @SessionEvent");
+                    }
+                }
+            }
+        }
+    }
+
+    public void submitDispatchTask(Callable<Void> task) {
+        executorService.submit(task);
+    }
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        log.debug("WS connection {} established", session.getId());
+        long newID = counter.incrementAndGet();
+        Long oldValue = sessionIDs.putIfAbsent(session.getId(), newID);
+        if (oldValue == null) {
+            var handler = sessionEventHandlers.get(ConnectionEventType.Connected);
+            if (handler != null) {
+                submitDispatchTask(()->{
+                    try {
+                        handler.method.invoke(handler.object, newID);
+                    } catch (Exception e) {
+                        log.warn("Handle WS connection connected error: {}", e.toString());
+                    }
+                    return null;
+                });
+            }
+        } else {
+            log.error("Websocket session {} establish more than one time", session.getId());
+        }
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        log.info("Received TEXT websocket message from: {}, message: {}", session.getId(), message.toString());
+    }
+
+    @Override
+    protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws Exception {
+        //投递到其它线程池处理，如何回到当前线程发送数据?
+        super.handleBinaryMessage(session, message);
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        log.debug("WS connection {} closed, status: {}", session.getId(), status);
+        Long id = sessionIDs.remove(session.getId());
+        if (id != null) {
+            var handler = sessionEventHandlers.get(ConnectionEventType.Closed);
+            if (handler != null) {
+                submitDispatchTask(()->{
+                    try {
+                        handler.method.invoke(handler.object, id);
+                    } catch (Exception e) {
+                        log.warn("Handle WS connection NormalClosed error: {}, status: {}", e.toString(), status);
+                    }
+                    return null;
+                });
+            }
+        }
+    }
+
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+        log.debug("WS connection {} has transport error: {}", session.getId(), exception.toString());
+        Long id = sessionIDs.remove(session.getId());
+        if (id != null) {
+            var handler = sessionEventHandlers.get(ConnectionEventType.UnexpectedlyClosed);
+            if (handler != null) {
+                submitDispatchTask(()->{
+                    try {
+                        handler.method.invoke(handler.object, id);
+                    } catch (Exception e) {
+                        log.warn("Handle WS connection transport error failed: {}", e.toString());
+                    }
+                    return null;
+                });
+            }
+        }
+    }
+
+    public void send(long connectionID, LtMessage ltMessage) {
+        if (ltMessage == null) {
+            return;
+        }
+        WebSocketSession session; // TODO:
+        if (session == null) {
+            return;
+        }
+        int buffLen = ltMessage.protoMsg.getSerializedSize() + 4;
+        var buf = Unpooled.buffer();
+        buf.writeIntLE((int)ltMessage.type);
+        buf.writeBytes(ltMessage.protoMsg.toByteArray());
+        var bmsg = new BinaryMessage(buf.array());
+        synchronized (session) {
+            try {
+                session.sendMessage(bmsg);
+            } catch (Exception e) {
+                log.warn("WS connection {} send message({}) failed: {}", session.getId(), ltMessage.type, e.toString());
+            }
+        }
+    }
+}
