@@ -56,7 +56,7 @@ public class LtCodec extends MessageToMessageCodec<NetPacket, LtMessage> {
         }
     }
 
-    private final static HashMap<Long, Method> createMethods = new HashMap<>();
+    final static HashMap<Long, Method> createMethods = new HashMap<>();
 
     private final static Random random = new Random();
 

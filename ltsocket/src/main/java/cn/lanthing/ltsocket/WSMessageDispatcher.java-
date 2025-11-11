@@ -29,12 +29,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package cn.lanthing.svr.ws;
+package cn.lanthing.ltsocket;
 
+import cn.lanthing.codec.LtCodec;
 import cn.lanthing.codec.LtMessage;
-import cn.lanthing.ltsocket.ConnectionEvent;
-import cn.lanthing.ltsocket.ConnectionEventType;
-import cn.lanthing.ltsocket.MessageMapping;
 import com.google.protobuf.Message;
 import io.netty.buffer.Unpooled;
 import lombok.extern.slf4j.Slf4j;
@@ -68,6 +66,8 @@ public class WSMessageDispatcher extends AbstractWebSocketHandler {
     }
 
     final private ConcurrentHashMap<String, Long> sessionIDs = new ConcurrentHashMap<>();
+
+    final private ConcurrentHashMap<Long, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
     private final Map<Long, GeneralHandler> messageHandlers = new HashMap<>();
 
@@ -155,6 +155,7 @@ public class WSMessageDispatcher extends AbstractWebSocketHandler {
         long newID = counter.incrementAndGet();
         Long oldValue = sessionIDs.putIfAbsent(session.getId(), newID);
         if (oldValue == null) {
+            sessions.put(newID, session);
             var handler = sessionEventHandlers.get(ConnectionEventType.Connected);
             if (handler != null) {
                 submitDispatchTask(()->{
@@ -178,8 +179,15 @@ public class WSMessageDispatcher extends AbstractWebSocketHandler {
 
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws Exception {
-        //投递到其它线程池处理，如何回到当前线程发送数据?
-        super.handleBinaryMessage(session, message);
+        //不能像netty那样自定义
+        var payload = message.getPayload();
+        var nettyBuf = Unpooled.wrappedBuffer(payload);
+        LtMessage ltMessage = new LtMessage();
+        ltMessage.type = nettyBuf.readUnsignedIntLE();
+        Method createMethod = LtCodec.createMethods.get(ltMessage.type);
+        byte[] bytes = new byte[nettyBuf.readableBytes()];
+        nettyBuf.readBytes(bytes);
+        ltMessage.protoMsg = (Message)createMethod.invoke(null, bytes);
     }
 
     @Override
@@ -187,6 +195,7 @@ public class WSMessageDispatcher extends AbstractWebSocketHandler {
         log.debug("WS connection {} closed, status: {}", session.getId(), status);
         Long id = sessionIDs.remove(session.getId());
         if (id != null) {
+            sessions.remove(id);
             var handler = sessionEventHandlers.get(ConnectionEventType.Closed);
             if (handler != null) {
                 submitDispatchTask(()->{
@@ -204,8 +213,12 @@ public class WSMessageDispatcher extends AbstractWebSocketHandler {
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         log.debug("WS connection {} has transport error: {}", session.getId(), exception.toString());
+        if (session.isOpen()) {
+            session.close();
+        }
         Long id = sessionIDs.remove(session.getId());
         if (id != null) {
+            sessions.remove(id);
             var handler = sessionEventHandlers.get(ConnectionEventType.UnexpectedlyClosed);
             if (handler != null) {
                 submitDispatchTask(()->{
@@ -224,12 +237,12 @@ public class WSMessageDispatcher extends AbstractWebSocketHandler {
         if (ltMessage == null) {
             return;
         }
-        WebSocketSession session; // TODO:
+        WebSocketSession session = sessions.get(connectionID);
         if (session == null) {
             return;
         }
         int buffLen = ltMessage.protoMsg.getSerializedSize() + 4;
-        var buf = Unpooled.buffer();
+        var buf = Unpooled.buffer(buffLen);
         buf.writeIntLE((int)ltMessage.type);
         buf.writeBytes(ltMessage.protoMsg.toByteArray());
         var bmsg = new BinaryMessage(buf.array());
