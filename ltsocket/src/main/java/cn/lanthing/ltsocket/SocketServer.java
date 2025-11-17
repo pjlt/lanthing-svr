@@ -52,14 +52,22 @@ public class SocketServer {
 
     private SslChannelInitializer sslChannelInitializer;
 
+    private WSNonSslChannelInitializer wsNonSslChannelInitializer;
+
+    private WSSslChannelInitializer wsSslChannelInitializer;
+
     private NioEventLoopGroup bossGroup;
 
     private NioEventLoopGroup childGroup;
 
-    public SocketServer(SocketConfig socketConfig, NonSslChannelInitializer nonSslChannelInitializer, SslChannelInitializer sslChannelInitializer) throws Exception {
+    public SocketServer(SocketConfig socketConfig,
+                        NonSslChannelInitializer nonSslChannelInitializer, SslChannelInitializer sslChannelInitializer,
+                        WSNonSslChannelInitializer wsNonSslChannelInitializer, WSSslChannelInitializer wsSslChannelInitializer) throws Exception {
         this.config = socketConfig;
         this.nonSslChannelInitializer = nonSslChannelInitializer;
         this.sslChannelInitializer = sslChannelInitializer;
+        this.wsNonSslChannelInitializer = wsNonSslChannelInitializer;
+        this.wsSslChannelInitializer = wsSslChannelInitializer;
         init();
     }
 
@@ -68,6 +76,8 @@ public class SocketServer {
         childGroup = new NioEventLoopGroup();
         ServerBootstrap sslBoostrap = new ServerBootstrap();
         ServerBootstrap nonSslBoostrap = new ServerBootstrap();
+        ServerBootstrap wsSslBoostrap = new ServerBootstrap();
+        ServerBootstrap wsNonSslBoostrap = new ServerBootstrap();
 
         nonSslBoostrap.group(bossGroup, childGroup)
                 .channel(NioServerSocketChannel.class)
@@ -76,14 +86,28 @@ public class SocketServer {
         if (sslChannelInitializer != null) {
             sslBoostrap.group(bossGroup, childGroup)
                     .channel(NioServerSocketChannel.class)
-                    .localAddress((new InetSocketAddress(config.getIP(), config.getSslPort())))
+                    .localAddress(new InetSocketAddress(config.getIP(), config.getSslPort()))
                     .childHandler(sslChannelInitializer);
+        }
+        wsNonSslBoostrap.group(bossGroup, childGroup)
+                .channel(NioServerSocketChannel.class)
+                .localAddress(new InetSocketAddress(config.getIP(), config.getWsPort()))
+                .childHandler(wsNonSslChannelInitializer);
+        if (wsSslChannelInitializer != null) {
+            wsSslBoostrap.group(bossGroup, childGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .localAddress(new InetSocketAddress(config.getIP(), config.getWsSslPort()))
+                    .childHandler(wsSslChannelInitializer);
         }
 
 
         nonSslBoostrap.bind().sync();
         if (sslChannelInitializer != null) {
             sslBoostrap.bind().sync();
+        }
+        wsNonSslBoostrap.bind().sync();
+        if (wsSslChannelInitializer != null) {
+            wsSslBoostrap.bind().sync();
         }
 
         log.info("Socket server initialized");

@@ -31,10 +31,7 @@
 
 package cn.lanthing.svr.sockets;
 
-import cn.lanthing.ltsocket.NonSslChannelInitializer;
-import cn.lanthing.ltsocket.SocketConfig;
-import cn.lanthing.ltsocket.SocketServer;
-import cn.lanthing.ltsocket.SslChannelInitializer;
+import cn.lanthing.ltsocket.*;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,14 +57,30 @@ public class Server {
     @Autowired(required = false)
     private SslChannelInitializer controlledSslChannelInitializer;
 
+    @Autowired
+    private WSNonSslChannelInitializer controllingWsNonSslChannelInitializer;
+
+    @Autowired(required = false)
+    private WSSslChannelInitializer controllingWsSslChannelInitializer;
+
+    @Autowired
+    private WSNonSslChannelInitializer controlledWsNonSslChannelInitializer;
+
+    @Autowired(required = false)
+    private WSSslChannelInitializer controlledWsSslChannelInitializer;
+
     private SocketServer controlledSocketServer;
 
     private SocketServer controllingSocketServer;
 
     @PostConstruct
     public void init() throws Exception {
-        controlledSocketServer = new SocketServer(controlledSocketConfig, controlledNonSslChannelInitializer, controlledSslChannelInitializer);
-        controllingSocketServer = new SocketServer(controllingSocketConfig, controllingNonSslChannelInitializer, controllingSslChannelInitializer);
+        controlledSocketServer = new SocketServer(controlledSocketConfig,
+                controlledNonSslChannelInitializer, controlledSslChannelInitializer,
+                controlledWsNonSslChannelInitializer, controlledWsSslChannelInitializer);
+        controllingSocketServer = new SocketServer(controllingSocketConfig,
+                controllingNonSslChannelInitializer, controllingSslChannelInitializer,
+                controllingWsNonSslChannelInitializer, controllingWsSslChannelInitializer);
     }
 
     @PreDestroy

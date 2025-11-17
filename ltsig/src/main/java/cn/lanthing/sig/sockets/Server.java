@@ -31,10 +31,7 @@
 
 package cn.lanthing.sig.sockets;
 
-import cn.lanthing.ltsocket.NonSslChannelInitializer;
-import cn.lanthing.ltsocket.SocketConfig;
-import cn.lanthing.ltsocket.SocketServer;
-import cn.lanthing.ltsocket.SslChannelInitializer;
+import cn.lanthing.ltsocket.*;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,12 +48,20 @@ public class Server {
     @Autowired(required = false)
     private SslChannelInitializer sslChannelInitializer;
 
+    @Autowired
+    private WSNonSslChannelInitializer wsNonSslChannelInitializer;
+
+    @Autowired(required = false)
+    private WSSslChannelInitializer wsSslChannelInitializer;
+
     private SocketServer socketServer;
 
 
     @PostConstruct
     public void init() throws Exception {
-        socketServer = new SocketServer(socketConfig, nonSslChannelInitializer, sslChannelInitializer);
+        socketServer = new SocketServer(socketConfig,
+                nonSslChannelInitializer, sslChannelInitializer,
+                wsNonSslChannelInitializer, wsSslChannelInitializer);
     }
 
     @PreDestroy

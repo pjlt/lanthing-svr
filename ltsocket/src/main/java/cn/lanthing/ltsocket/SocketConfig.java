@@ -44,6 +44,10 @@ public final class SocketConfig {
 
     private int sslPort;
 
+    private int wsPort;
+
+    private int wsSslPort;
+
     private String certsFolder;
 
     private String certChainFile;
