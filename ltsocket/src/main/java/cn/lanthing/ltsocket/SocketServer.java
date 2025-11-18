@@ -79,21 +79,25 @@ public class SocketServer {
         ServerBootstrap wsSslBoostrap = new ServerBootstrap();
         ServerBootstrap wsNonSslBoostrap = new ServerBootstrap();
 
+        log.info("Listening on {}:{}", config.getIP(), config.getPort());
         nonSslBoostrap.group(bossGroup, childGroup)
                 .channel(NioServerSocketChannel.class)
                 .localAddress(new InetSocketAddress(config.getIP(), config.getPort()))
                 .childHandler(nonSslChannelInitializer);
         if (sslChannelInitializer != null) {
+            log.info("Listening ssl on {}:{}", config.getIP(), config.getSslPort());
             sslBoostrap.group(bossGroup, childGroup)
                     .channel(NioServerSocketChannel.class)
                     .localAddress(new InetSocketAddress(config.getIP(), config.getSslPort()))
                     .childHandler(sslChannelInitializer);
         }
+        log.info("Listening ws on {}:{}", config.getIP(), config.getWsPort());
         wsNonSslBoostrap.group(bossGroup, childGroup)
                 .channel(NioServerSocketChannel.class)
                 .localAddress(new InetSocketAddress(config.getIP(), config.getWsPort()))
                 .childHandler(wsNonSslChannelInitializer);
         if (wsSslChannelInitializer != null) {
+            log.info("Listening ws ssl on {}:{}", config.getIP(), config.getWsSslPort());
             wsSslBoostrap.group(bossGroup, childGroup)
                     .channel(NioServerSocketChannel.class)
                     .localAddress(new InetSocketAddress(config.getIP(), config.getWsSslPort()))

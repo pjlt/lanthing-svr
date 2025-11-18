@@ -198,6 +198,7 @@ private void init(Class<?> controller, ApplicationContext applicationContext) th
         }
         return () -> {
             var response = (LtMessage)handler.method.invoke(handler.object, connection.ID, ltMessage.protoMsg);
+            log.debug("invoked handler {}", response.type);
             if (response != null) {
                 connection.send(response);
             }

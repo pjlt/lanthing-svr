@@ -148,7 +148,7 @@ public class ControllingController {
             if (newID == null) {
                 log.error("Allocate new deviceID for connection(connectionID:{}, old deviceID:{}) failed", connectionID, msg.getDeviceId());
                 ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID);
-                return new LtMessage(LtProto.LoginUserAck.ID, ack.build());
+                return new LtMessage(LtProto.LoginDeviceAck.ID, ack.build());
             }
             log.info("Allocated new deviceID({}) for connection(connectionID:{}, old deviceID:{}", newID.deviceID(), connectionID, msg.getDeviceId());
             ack.setErrCode(ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID)

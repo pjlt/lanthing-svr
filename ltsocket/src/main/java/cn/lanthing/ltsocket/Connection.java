@@ -77,10 +77,13 @@ public class Connection extends ChannelInboundHandlerAdapter {
 
     public void send(LtMessage ltMessage) {
         if (!channel.eventLoop().inEventLoop()) {
+            log.debug("channel.eventLoop().submit()");
             channel.eventLoop().submit(() -> {
+                log.debug("queued channel.writeAndFlush(ltMessage);");
                 channel.writeAndFlush(ltMessage);
             });
         } else {
+            log.debug("channel.writeAndFlush(ltMessage);");
             channel.writeAndFlush(ltMessage);
         }
     }
@@ -114,6 +117,7 @@ public class Connection extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        log.debug(cause.toString());
         status = Status.Closed;
         ctx.close();
         messageDispatcher.onConnectionUnexpectedClosed(this);

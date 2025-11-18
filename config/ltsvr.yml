@@ -23,6 +23,8 @@ log:
 controlled-socket-svr:
   port: 4567
   ssl-port: 5678
+  ws-port: 7654
+  ws-ssl-port: 8765
   ip: "0.0.0.0"
   enable-ssl: false
   certs-folder: "./certs"
@@ -32,6 +34,8 @@ controlled-socket-svr:
 controlling-socket-svr:
   port: 9876
   ssl-port: 8765
+  ws-port: 6789
+  ws-ssl-port: 9876
   ip: "0.0.0.0"
   enable-ssl: false
   certs-folder: "./certs"

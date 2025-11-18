@@ -1,6 +1,7 @@
 package cn.lanthing.codec;
 
 import com.google.protobuf.Message;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageCodec;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
@@ -15,9 +16,11 @@ import java.util.List;
 public class LtWsCodec extends MessageToMessageCodec<WebSocketFrame, LtMessage> {
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, LtMessage ltMessage, List<Object> list) throws Exception {
-        WebSocketFrame frame;
-        //xxxxx
-        BinaryWebSocketFrame binaryFrame = new BinaryWebSocketFrame();
+        log.debug("LtWsCodec encode");
+        var payload = Unpooled.buffer(ltMessage.protoMsg.getSerializedSize()+4);
+        payload.writeIntLE((int)ltMessage.type);
+        payload.writeBytes(ltMessage.protoMsg.toByteArray());
+        BinaryWebSocketFrame binaryFrame = new BinaryWebSocketFrame(payload);
         list.add(binaryFrame);
     }
 
